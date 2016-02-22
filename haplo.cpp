@@ -14,12 +14,12 @@ Chaplotypes::~Chaplotypes()
 {
   ////cout << "Chaplotypes::~Chaplotypes()" << endl;
   //print_param();
-  log_param_hap();
+ // log_param_hap();
 }
 
 void Chaplotypes::initialise_param()
 {
- // cout << "Chaplotypes::initialise_param() START" << endl;
+  //cout << "Chaplotypes::initialise_param() START" << endl;
   //initialise theta matrix
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -51,14 +51,14 @@ void Chaplotypes::initialise_param()
     for(int jCount=0;jCount< n_clusters;jCount++)
     {
       //alphaTemp.push_back(1.0/n_clusters); 
-      alphaTemp.emplace_back(distribution(rd)); 
+      alphaTemp.push_back(distribution(rd)); 
       normalise = normalise + alphaTemp[jCount];
     } 
     for(int jCount=0; jCount < n_clusters ;jCount++)
     {
         alphaTemp[jCount] = alphaTemp[jCount]/normalise ;
     }
-    m_alpha.emplace_back(alphaTemp);
+    m_alpha.push_back(alphaTemp);
   } 
   for(int iCount =0;iCount < n_markers-1 ;iCount++)
   {
@@ -68,14 +68,11 @@ void Chaplotypes::initialise_param()
   //cout << "Chaplotypes::initialise_param() END" << endl;
 }
 
-void Chaplotypes::initial_call_actions(int num_clusters)
+void Chaplotypes::initial_call_actions()
 {
   //cout << "Chaplotypes::initial_call_actions() START" << endl;
    m_input.parse_input(); 
-   //m_input.print_variables();
-  //initialise clusters
-  
-  n_clusters = num_clusters; 
+ // n_clusters = num_clusters; 
   m_input.log_variables();
   initialise_param();
   optimise_param_helper();
@@ -85,7 +82,6 @@ void Chaplotypes::initial_call_actions(int num_clusters)
 }
 void Chaplotypes::restore_prevstate()
 {
- 
    m_input.read_variables();     
 }
 void Chaplotypes::compute_trans_prob_bet_clst()
@@ -123,7 +119,7 @@ void Chaplotypes::compute_trans_prob_bet_clst()
 	
     } 
 
-   // cout << " CHK:  Chaplotypes::compute_trans_prob_bet_clst END" << endl;
+ //   cout << " CHK:  Chaplotypes::compute_trans_prob_bet_clst END" << endl;
   /*std::map<pair<int,int>, long double> x;
   for(size_t i= 0;i < m_trans_prob_bet_clst.size();i++) 
   {
@@ -137,32 +133,27 @@ void Chaplotypes::compute_trans_prob_bet_clst()
 
 Double Chaplotypes::compute_trans_prob_bet_clst_tuples(int frmMarker,vector<vector<int>>&fromstatePerms,vector<int>&toState)
 {
-   //cout << "Chaplotypes::compute_trans_prob_bet_clst_tuples START" << endl;
-   
+  // cout << "Chaplotypes::compute_trans_prob_bet_clst_tuples START" << endl;
+  
    map<pair<int,int>,Double> markerData;  
-   Double tempTrans,transValue=0,print=0;
-   vector<int> frmstatevec;
+   Double transValue = 0.0,tempTrans;
+    
    markerData = m_trans_prob_bet_clst[frmMarker];
 
    vector< vector<std::pair<int,int>>> Map_Valid_stateTuples;
    get_map_vectors(fromstatePerms, toState, Map_Valid_stateTuples);
    
-  for(auto &kvp:Map_Valid_stateTuples)
+   for(auto &kvp:Map_Valid_stateTuples)
    {
       tempTrans = 1.0;
       for(auto kv:kvp)
       {
-	 //mpfr_mul(tempTrans.backend().data(), tempTrans.backend().data(),  markerData[kv].backend().data(), GMP_RNDD);
-	  tempTrans *= markerData[kv];	 
+	  tempTrans *= markerData[kv];
       }
-      //
-       transValue = transValue + tempTrans;
-      //mpfr_add (transValue.backend().data(), transValue.backend().data(), tempTrans.backend().data(), GMP_RNDU);
-     
+      transValue = transValue + tempTrans;
    }
-
-  //  cout << "Chaplotypes::compute_trans_prob_bet_clst_tuples END" << endl;    
-   return  transValue; 
+ //  cout << "Chaplotypes::compute_trans_prob_bet_clst_tuples END" << endl;
+    return transValue;  
 }
 
 void  Chaplotypes::print_param(void)
@@ -248,29 +239,29 @@ void Chaplotypes::log_param_hap(void)
 
 void Chaplotypes::optimise_param_helper()
 {
-  // cout<< "CHK em_hmm_genotype::optimise_param_helper() START" << endl;
-  //ofstream input_file; 
-   std::ofstream input_file("dakota_param.in");
- 
-   int ind=0;
-   int  n_max_iterations = 15;//25
-   Double d_convergence_tolerance = 1e-4;//1e-10; 
-   Double  step_size = 1e-3;//1e-2;
-   Double upper_bound = 0.99999;
-   Double lower_bound = 1e-10;
-   Double upper_bound_recomb = 0.1;
-    Double lower_bound_recomb = 1e-10;
-   int num_Params;  
-   num_Params =  (n_markers* n_clusters * 2) + (n_markers-1) ;//theta, alpha, r .  
-   string var_name;
-   string method_name = "conmin_frcg";
+      //cout<< "CHK em_hmm_genotype::optimise_param_helper() START" << endl;
+      //ofstream input_file; 
+      std::ofstream input_file("dakota_param.in");
+    
+      int ind=0;
+      int  n_max_iterations = 15;//25;
+      Double d_convergence_tolerance = 1e-5;//1e-10; 
+      Double  step_size = 1e-3;//1e-2;
+      Double upper_bound = 0.99999;
+      Double lower_bound = 1e-10;
+      Double upper_bound_recomb = 0.1;
+      Double lower_bound_recomb = 1e-10;
+      int num_Params;  
+      num_Params =  (n_markers* n_clusters * 2) + (n_markers-1) ;//theta, alpha, r .  
+      string var_name;
+      string method_name = "conmin_frcg";
    
    
       //input_file.open("phase_param.in");
   
       input_file << "environment" << endl;
       input_file << " tabular_graphics_data" << endl;
-      input_file << "  tabular_graphics_file = 'poly_phase.dat' " << endl;
+      input_file << "  tabular_graphics_file = 'poly_phase.dat'" << endl;
       input_file << endl <<"method" <<endl;
       
       input_file << " max_iterations = " << n_max_iterations << endl;
@@ -288,34 +279,31 @@ void Chaplotypes::optimise_param_helper()
     
       for(int iCount=0;iCount < n_markers; iCount++)
       {
-	  for(int jCount=0; jCount < n_clusters ;jCount++)
-	  {
-	    input_file << "\t" << m_theta[iCount][jCount];
-	  }
+	    for(int jCount=0; jCount < n_clusters ;jCount++)
+	    {
+	      input_file << "\t" << m_theta[iCount][jCount];
+	    }
        }
     
       for(int iCount=0;iCount < n_markers; iCount++)
       {
-	  for(int jCount=0; jCount < n_clusters; jCount++)
-	  {
-	      input_file << "\t" << m_alpha[iCount][jCount];
-
-	  }
+	    for(int jCount=0; jCount < n_clusters; jCount++)
+	    {
+		input_file << "\t" << m_alpha[iCount][jCount];
+	    }
       }
      for(int iCount=0;iCount < n_markers-1; iCount++)
-       {
-	    input_file << "\t" << m_recombinations[iCount];
-
-       }
+     {
+	  input_file << "\t" << m_recombinations[iCount];
+      }
    
       input_file << endl << "lower_bounds" ;
       for(int iCount=0;iCount < n_markers; iCount++)
       {
-	  for(int jCount=0; jCount < n_clusters ;jCount++)
-	  {
-	    input_file << "\t" << lower_bound << "\t" << lower_bound;
-	  }
-	
+	    for(int jCount=0; jCount < n_clusters ;jCount++)
+	    {
+	      input_file << "\t" << lower_bound << "\t" << lower_bound;
+	    }	
       }
       
       for(int iCount=0;iCount < n_markers-1; iCount++)
@@ -326,33 +314,35 @@ void Chaplotypes::optimise_param_helper()
       input_file << endl << "upper_bounds" ; 
       for(int iCount=0;iCount < n_markers; iCount++)
       {
-	  for(int jCount=0; jCount < n_clusters ;jCount++)
-	  {
+	    for(int jCount=0; jCount < n_clusters ;jCount++)
+	    {
 	      input_file << "\t" << upper_bound << "\t" << upper_bound;
-	  }
+	    }
       }
       for(int iCount=0;iCount < n_markers-1; iCount++)
       {
-        input_file << "\t" << upper_bound_recomb;
+	  input_file << "\t" << upper_bound_recomb;
       }
       input_file << endl << "descriptors" ; 
       
       for(int iCount=0;iCount < n_markers; iCount++)
       {
-	for(int jCount=0; jCount < n_clusters ;jCount++)
-	{
-	  var_name =  std::to_string(iCount)+ std::to_string(jCount);
-	  input_file << "\t" << "'theta_" + var_name + "'" ;
-	}
+	    for(int jCount=0; jCount < n_clusters ;jCount++)
+	    {
+	      var_name =  std::to_string(iCount)+ std::to_string(jCount);
+	      input_file << "\t" << "'theta_" + var_name + "'" ;
+	    }
       }
+      
       for(int iCount=0;iCount < n_markers; iCount++)
       {
-	for(int jCount=0; jCount < n_clusters ;jCount++)
-	{
-	   var_name =  std::to_string(iCount)+ std::to_string(jCount);
-	   input_file << "\t" << "'alpha_"+ var_name + "'";
-	}
+	    for(int jCount=0; jCount < n_clusters ;jCount++)
+	    {
+	      var_name =  std::to_string(iCount)+ std::to_string(jCount);
+	      input_file << "\t" << "'alpha_"+ var_name + "'";
+	    }
       }
+      
       for(int iCount=0;iCount < n_markers-1; iCount++)
       {
 	  input_file << "\t" << "'recomb_"+ std::to_string(iCount)+"'" ;
@@ -372,7 +362,7 @@ void Chaplotypes::optimise_param_helper()
       input_file <<"method_source dakota" << endl<< " interval_type forward" << endl << " fd_gradient_step_size = " << step_size
        << endl << " no_hessians" ;
    
-  input_file.close();
+      input_file.close();
  //cout<< "CHK em_hmm_genotype::optimise_param_helper() END" << endl;  
    
 } 

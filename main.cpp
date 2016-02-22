@@ -10,121 +10,99 @@ void pass_values(em_hmm_genotype &genoObj, map<int,Double> &var);
   
 int main(int argc, char *argv[])
 {
-  //mpfr_set_default_prec(prec);
-      try
-     {
-	  em_hmm_genotype HMM_geno_Obj;
-	  ifstream fin(argv[1]);
-  
+	//mpfr_set_default_prec(prec);
+	em_hmm_genotype HMM_geno_Obj;      
+	ifstream fin(argv[1]);
+	
 	//cout << "argv[1] " << argv[1] <<endl;
 	if (!fin)
 	{
 	    cerr << "\nError: failure opening " << argv[1] << endl;
 	    exit(-1);
-         }
-      size_t i, j, num_vars, num_fns, num_deriv_vars;
-      string vars_text, fns_text, dvv_text;
- 
-  
-    // Get the parameter vector and ignore the labels
-  
-      fin >> num_vars >> vars_text;
-     // cout << "num_vars " << num_vars << " vars_text " << vars_text<<endl;
- 
-      map<int,Double> vars;
-      vector<int> labels(num_vars);
-      Double var_i; string label_i; 
-      int v_i;
-      map<string, int>::iterator v_iter;
-  
-      for (i=0; i<num_vars; i++) 
-      {
-	  fin >> var_i >> label_i;
-	  transform(label_i.begin(), label_i.end(), label_i.begin(),(int(*)(int))tolower);
-	  //cout << " var_i " << var_i << " label_i "<< label_i <<" ";
-	  v_i = i;//v_iter->second;
-	  vars[v_i] = var_i;
-	  labels[i] = v_i;
-      }
+	}
+	size_t i, j, num_vars, num_fns, num_deriv_vars;
+	string vars_text, fns_text, dvv_text;    
+	
+	// Get the parameter vector and ignore the labels      
+	fin >> num_vars >> vars_text;
+	map<int,Double> vars;
+	vector<int> labels(num_vars);
+	Double var_i; string label_i;       
+	int v_i;
+	map<string, int>::iterator v_iter;      
+	for (i=0; i<num_vars; i++) 
+	{
+	      fin >> var_i >> label_i;	  
+	      transform(label_i.begin(), label_i.end(), label_i.begin(),
+			(int(*)(int))tolower);
+	      v_i = i;//v_iter->second;
+	      vars[v_i] = var_i;
+	      labels[i] = v_i;
+	}
+	// Get the ASV vector and ignore the labels
+	fin >> num_fns >> fns_text;
+	vector<short> ASV(num_fns);
+	for (i=0; i<num_fns; i++) 
+	{
+	      fin >> ASV[i];
+	      fin.ignore(256, '\n');
+	}
+	// Get the DVV vector and ignore the labels
+	fin >> num_deriv_vars >> dvv_text;
+	vector<int> DVV(num_deriv_vars);
+    
+	unsigned int dvv_i;
+	for (i=0; i<num_deriv_vars; i++) 
+	{
+	      fin >> dvv_i;
+	      fin.ignore(256, '\n');
+	      DVV[i] = labels[dvv_i-1];
+	}
       
-      //cout << endl;
-      // Get the ASV vector and ignore the labels
-      fin >> num_fns >> fns_text;
-      //cout << "num_fns " << num_fns <<endl << "ASV[i]  " ;
-      vector<short> ASV(num_fns);
-  
-      for (i=0; i<num_fns; i++)
-      {
-	  fin >> ASV[i];
-	  //cout << ASV[i] << " " ;
-	  fin.ignore(256, '\n');
-      }
-      //cout << endl;
-      // Get the DVV vector and ignore the labels
-      fin >> num_deriv_vars >> dvv_text;
-      vector<int> DVV(num_deriv_vars);
-     //cout << "num_deriv_vars " << num_deriv_vars <<endl;
-      unsigned int dvv_i;
-      
-      for (i=0; i<num_deriv_vars; i++) 
-      {
-	  fin >> dvv_i;
-	  fin.ignore(256, '\n');
-	  DVV[i] = labels[dvv_i-1];
-	//cout << "DVV[i] " << DVV[i] << endl;
-      }
- 
-      vector<Double> x ;
-      Double obj_func,gradients ;
-      for ( i=0; i<num_vars; i++) 
-      {
-	  x.push_back(vars[i]);
-      }
-      pass_values(HMM_geno_Obj, vars);
-      ofstream fout(argv[2]);
-  
-      if (!fout)
-      {
-	  cerr << "\nError: failure creating " << argv[2] << endl;
-	  exit(-1);
-      }
-  
-      fout.precision(6); // 16 total digits
-      //fout.precision(std::numeric_limits<cpp_dec_float_50>::digits10);
-      fout.setf(ios::scientific);
-      fout.setf(ios::right);
-      fout.width(5);
-   
-      if (ASV[0] & 1) // **** f:
-      {
-	  obj_func = HMM_geno_Obj.func_eval_local();     
-	  //cout << obj_func << endl;
-	  fout << "                     " << obj_func  << " f\n";   
-      }
+	vector<Double> x ;
+	Double obj_func,gradients ;
+	for (i=0; i<num_vars; i++) 
+	{
+	      x.push_back(vars[i]);
+	}
+	
+	//Get the latest param values from optimizer
+	pass_values(HMM_geno_Obj, vars);  
+	ofstream fout(argv[2]);      
+	if (!fout) 
+	{
+	      cerr << "\nError: failure creating " << argv[2] << endl;
+	      exit(-1);
+	}
+    
+      // fout.precision(6); // 16 total digits
+	//fout.precision(std::numeric_limits<cpp_dec_float_50>::digits10);
+	fout.setf(ios::scientific);
+	fout.setf(ios::right);
+      // fout.width(5);
+    
+	if (ASV[0] & 1) // **** f:
+	{
+	      obj_func = HMM_geno_Obj.func_eval_local();     
+	      cout << obj_func << endl;
+	      fout << "                     " << obj_func  << " f\n";   
+	}
 
-      if (ASV[0] & 2)  // **** df/dx:
-     {
-	  fout << "[ ";
-	  //cout << "gradients " << endl ;
-	  for (i=0; i<num_deriv_vars; i++)
-	  {
-	      gradients = HMM_geno_Obj.diff_eval_local(DVV[i]);	
-	      fout << gradients << ' ' ;
-	     // cout << gradients << ' ' ;
+	if (ASV[0] & 2)  // **** df/dx:
+	{
+	      fout << "[ ";	
+	      for (i=0; i<num_deriv_vars; i++)
+	      {
+		    gradients = HMM_geno_Obj.diff_eval_local(DVV[i]);	    
+		    fout << gradients << ' ' ;
+	      }
+	      fout << "]\n";
 	  }
-	  fout << "]\n";
-	  //cout << endl;
-  }
-
-   fout.flush();
-   fout.close();
-  }
-   catch(const std::exception& e)
-   {
-	std::cout << e.what() << '\n';
-   }
-  return 0;
+	fout.flush();
+	fout.close();
+	return 0;
  }
+  
   
 void pass_values(em_hmm_genotype &genoObj, map<int,Double> &var)
 {
@@ -139,10 +117,9 @@ void pass_values(em_hmm_genotype &genoObj, map<int,Double> &var)
       vector<Double> temp;
       for(int jCount=0; jCount < n_clusters ;++jCount,++ipointer)
       {
-	  //cout << var[ipointer] << " " ;
-	  temp.emplace_back(var[ipointer]);
+	  temp.push_back(var[ipointer]);
       }
-      genoObj.m_hap_data.m_theta.emplace_back(temp);
+      genoObj.m_hap_data.m_theta.push_back(temp);
       // cout << endl;
    }
     
@@ -152,10 +129,9 @@ void pass_values(em_hmm_genotype &genoObj, map<int,Double> &var)
       vector<Double> temp;
       for(int jCount=0; jCount < n_clusters; ++jCount,++ipointer)
       {
-	  //cout << var[ipointer] << " " ;
-	   temp.emplace_back(var[ipointer]);   
+	   temp.push_back(var[ipointer]);   
       }
-      genoObj.m_hap_data.m_alpha.emplace_back(temp);
+      genoObj.m_hap_data.m_alpha.push_back(temp);
       //cout << endl;
     }
   
@@ -163,8 +139,8 @@ void pass_values(em_hmm_genotype &genoObj, map<int,Double> &var)
   for(int iCount=0;iCount < n_markers-1; iCount++)
    {
      //cout << var[ipointer] << " " ;
-     genoObj.m_hap_data.m_recombinations.emplace_back(var[ipointer]);
+     genoObj.m_hap_data.m_recombinations.push_back(var[ipointer]);
      ++ipointer;	
    }
-    //cout << endl; 
+    // cout << endl; 
 }

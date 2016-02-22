@@ -19,9 +19,11 @@
 #include "tbb/parallel_for.h"
 #include <tbb/concurrent_vector.h>
 #include <tbb/combinable.h>
-//#include <chrono>
+#include <cmath>
 //#include "./gmpfrxx/gmpfrxx.h"
+#define VERYSMALL  (1.0E-150)
 #define EPSILON    (1.0E-8)
+
 using namespace std;
 using namespace tbb;
 namespace bmp = boost::multiprecision;
@@ -29,8 +31,8 @@ namespace bmp = boost::multiprecision;
 //typedef long double Double;
 typedef bmp::number<bmp::mpfr_float_backend<500>> Double;
 //typedef  bmp::mpfr_float  Double;
-const Double Recomb_InitialValue = 0.06;
-const Double Threshold_transitions= pow(10,-30);
+//const Double Recomb_InitialValue = 0.01;
+//const int num_states = 100;
 const int prec =1000;
 
 
@@ -41,7 +43,9 @@ extern int n_clusters;
 extern int n_ploidy;
 extern   Double dThreshold;
 extern   Double scaling_factor;
+extern   Double Recomb_InitialValue;
 extern int num_states;
+
 struct states
 {
   vector<int> values;
@@ -63,12 +67,12 @@ void vector_permutation(std::vector<int> &now,
 			
 std::vector<int> next,std::vector<vector<int>> &permutations);
 
-//void gen_combi_states(int nploidy,int nclusters,vector< states > &T);
-void gen_combi_states(int nploidy,int nclusters,vector< vector<int> > &T);
+void gen_combi_states(int nploidy,int nclusters,vector< states > &T);
+
 void gen_weights_states(int n, int k, vector< states > &T ,vector<Double> &indiprobs);
 
 long choose(vector<int > &input,vector<int > &got, int n_chosen, int len, int at, int max_types,vector<vector<int>> &T);
-long choose(vector<int > &input,vector<int > &got, int n_chosen, int len, int at, int max_types,vector< vector<int>> &T);
+
 int compare(const vector<int> &left, const vector<int> &right,vector<int> &out);
 
 void vector_combination(vector<int > &input,vector<int> combination, int offset, int k,vector< vector<int>> &T);
@@ -82,19 +86,10 @@ void project_range0_1(vector<double> &inout);
 
 //generates a map between two int vectors
 void get_map_vectors(vector<vector<int>>&input1, vector<int> &input2, vector<vector<std::pair<int,int>>> &output);
-Double  randZeroToOne();
 
+bool AreSame(double a, double b);
 bool inline pairCompare(const std::pair<int, int>& firstElem, const std::pair<int, int>& secondElem) 
 {
-      return firstElem.first < secondElem.first;
+  return firstElem.first < secondElem.first;
 }
 
-bool inline pairCompare1(const std::pair<int, Double>& firstElem, const std::pair<int, Double>& secondElem) 
-{
-      return firstElem.second > secondElem.second;
-}
-
-bool inline is_close(Double firstElem,  Double secondElem)
-{
-    return (secondElem/firstElem >0.1) ;
-}

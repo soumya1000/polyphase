@@ -18,6 +18,7 @@ class data_genotypes
     data_genotypes();
     ~data_genotypes();
     void parse_input(void);
+    void read_paramsFile(void);
     void log_variables(void);
     void read_variables();
 };

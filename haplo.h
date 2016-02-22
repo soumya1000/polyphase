@@ -14,7 +14,7 @@ class Chaplotypes
    public:
      Chaplotypes();
      ~Chaplotypes();
-   void initial_call_actions(int num_clusters=8);
+   void initial_call_actions();
    void restore_prevstate();
    void print_param(void); 
    data_genotypes m_input;
