@@ -1,0 +1,11 @@
+Package: polyphase
+Type: Package
+Title: This package has the method to phase polyploid data
+Version: 0.1.0
+Author: S.Ranganathan
+Maintainer: S.Ranganathan <soumya.ranganathan1000@gmail.com>
+Description: The method doPhasing() accepts the file name which has gentype data
+    and performs phasing. The output is written to phased_haplo.txt.
+License: GNU General public license
+LazyData: TRUE
+RoxygenNote: 5.0.1.9000
