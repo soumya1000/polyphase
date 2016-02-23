@@ -14,7 +14,7 @@ class Chaplotypes
    public:
      Chaplotypes();
      ~Chaplotypes();
-   void initial_call_actions();
+   void initial_call_actions(string iFilename);
    void restore_prevstate();
    void print_param(void); 
    data_genotypes m_input;

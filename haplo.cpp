@@ -68,10 +68,10 @@ void Chaplotypes::initialise_param()
   //cout << "Chaplotypes::initialise_param() END" << endl;
 }
 
-void Chaplotypes::initial_call_actions()
+void Chaplotypes::initial_call_actions(string iFilename)
 {
   //cout << "Chaplotypes::initial_call_actions() START" << endl;
-   m_input.parse_input(); 
+   m_input.parse_input(iFilename); 
  // n_clusters = num_clusters; 
   m_input.log_variables();
   initialise_param();

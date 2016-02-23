@@ -17,7 +17,7 @@ class data_genotypes
     
     data_genotypes();
     ~data_genotypes();
-    void parse_input(void);
+    void parse_input(string iFilename);
     void read_paramsFile(void);
     void log_variables(void);
     void read_variables();

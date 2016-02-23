@@ -59,11 +59,11 @@ void data_genotypes::read_paramsFile()
     }
 }
 
-void data_genotypes::parse_input()
+void data_genotypes::parse_input(string iFilename)
 {
     //cout << "data_genotypes::parse_input() START" << endl; 
       read_paramsFile();
-      std::ifstream myReadFile ("sim.inp"); 
+      std::ifstream myReadFile (iFilename); 
       string Strbuffer;
       istringstream buf_stream;
      
@@ -123,7 +123,7 @@ void data_genotypes::parse_input()
 	}
 	else
 	{
-	    cout << "Please provide input data in the file, sim.inp" << endl;
+	    cout << "Please provide input data in the file,"<< iFilename << endl;
 	    exit(1);
 	}
       

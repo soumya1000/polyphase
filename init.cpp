@@ -6,21 +6,44 @@
 #include "emalgo.h"
 #include "globals.h"
 
-//g++ -std=c++11 init.cpp emalgo.o particlefilter.o sampling.o parsedata.o haplo.o globals.o -o init -lgmpxx -lgmp  -lmpfr
+//g++ -std=c++11 init.cpp -I/run/media/root/System/tbb44_20150728oss/include/ emalgo.o particlefilter.o sampling.o parsedata.o haplo.o globals.o -o init -lmpfr -L /run/media/root/System/tbb44_20150728oss/build/linux_intel64_gcc_cc4.8_libc2.19_kernel3.16.7_release/ -ltbb
+
 void get_initial_vlaues(em_hmm_genotype &genoObj,Chaplotypes &haploObj);
-void test_code();
+void test_code(string iFilename);
 
 int main(int argc, char *argv[])
 {
   //mpfr_set_default_prec(prec);
-  
+  string ipFilename;
   //double dThreshold = pow(10,-40);
   //double scaling_factor = pow(10,30);
-  //test_code();
+  
+   if ( argc != 2 ) // argc should be 2 for correct execution
+   {
+	// We print argv[0] assuming it is the program name
+	cout<<"usage: "<< argv[0] <<" <filename>\n";
+	exit(1);
+   }
+    else 
+    {
+	// We assume argv[1] is a filename to open
+	ifstream the_file ( argv[1] );
+	// Always check to see if file opening succeeded
+	if ( !the_file.is_open() )
+	{
+	  cout<<"Could not open file\n";
+	  exit(1);
+	}
+	else 
+	{
+	  ipFilename =  argv[1];
+	}
+    }
+    //test_code(ipFilename);
   Chaplotypes haploObj;
   int dScaleFactor=0;
   
-  haploObj.initial_call_actions(); 
+  haploObj.initial_call_actions(ipFilename); 
   std::remove("scaling.in");
   std::remove("poly_phase.dat");
   em_hmm_genotype HMM_geno_Obj;
@@ -54,14 +77,14 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-void test_code()
+void test_code(string iFilename)
 {
   Chaplotypes haploObj;
 //  double dThreshold = pow(10,-40);
  // double scaling_factor = pow(10,30);
   int dScaleFactor=0;
   
-  haploObj.initial_call_actions(); 
+  haploObj.initial_call_actions(iFilename); 
   std::remove("scaling.in");
   em_hmm_genotype HMM_geno_Obj;
   get_initial_vlaues(HMM_geno_Obj,haploObj);   
