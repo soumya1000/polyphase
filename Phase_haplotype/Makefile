@@ -1,6 +1,6 @@
 CC = g++
-CFLAGS = -std=c++11 -c  -I/run/media/root/System/tbb44_20150728oss/include/
-LDFLAGS = -lmpfr -L /run/media/root/System/tbb44_20150728oss/build/linux_intel64_gcc_cc4.8_libc2.19_kernel3.16.7_release/ -ltbb
+CFLAGS = -std=c++11 -c  -I/TBB_INSTALL_DIR/include/
+LDFLAGS = -lmpfr -L /TBB_INSTALL_DIR/build/linux_intel64_gcc_cc4.8_libc2.19_kernel3.16.7_release/ -ltbb
 COMMON_SOURCES = sampling.cpp  emalgo.cpp particlefilter.cpp haplo.cpp parsedata.cpp globals.cpp
 TARGET_SOURCES = main.cpp
 INIT_SOURCES = init.cpp
