@@ -1,16 +1,26 @@
 ﻿# polyphase
-Phases the genotyped markers for polyploids.
+This repository has two methods, 
+ 1. A C++ phasing program which phases genotyped markers for polyploids.
+ 2. A method that validates the out put of a phasing method against true haplotypes( for simulated data sets).
 
-Installation: This package requires the installation of boost(http://www.boost.org/), DAKOTA(https://dakota.sandia.gov/sites/default/files/docs/6.0/html-ref/index.html), TBB (https://www.threadingbuildingblocks.org/) and 
-GNU multi precision libraries (http://www.mpfr.org/).
+ 1.Phasing method:
+    How to run?
+      1. This program requires the pre-installation of boost(http://www.boost.org/), DAKOTA(https://dakota.sandia.gov/sites/default/files/docs/6.0/html-ref/index.html), TBB (https://www.threadingbuildingblocks.org/) and 
+	GNU multi precision libraries (http://www.mpfr.org/).
+      2. Command : ./init Input_datafile
+      3. Accepts unphased haplotypes of genotyped data and the physical positions of the markers as input and returns the phased haplotypes as the output. 
 
-Description:
-This program takes unphased haplotypes of genotyped data and the physical positions of the markers as input and returns the phased haplotypes as the output. 
+    Input files:
+     Poly_phase_params.txt: This file allows user to modify parameters like number of clusters. This is already provided and does not need modifications in usual scenarios.
+     Inputp_data file: This provides the details of ploidy, number of individuals, number of markers and the unphased genotypes of each individual.
 
-Input files:
-Parameter file: This file allows user to modify parameters like number of clusters. 
-Data file: This provides the details of ploidy, number of individuals, number of markers and the unphased genotypes of each individual.
-
-output files:
-Phase_clusters.txt: This displays the array of most likely ancestral cluster, responsible for the current alleles.
-Phased_haplo.txt:  This displays the phased data of all the individuals.
+    Output files:
+    Phase_clusters.txt: This displays the array of most likely ancestral cluster, responsible for the current alleles.
+    Phased_haplo.txt:  This displays the phased data of all the individuals.
+    
+  2. Phasing_ validation
+     How to run?
+      1. Requires gtools package
+      2. Command :  Rscript switch_error.R Phased_output.txt true_data.dat n_ploidy  n_ind n_mark, 
+         where Phased_output.txt  is output from the phasing method and true_data.dat is a file with true values of haplotypes.
+      3. The output  is a csv file with switch error for every individual, as shown in the example file.
