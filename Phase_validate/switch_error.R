@@ -150,6 +150,7 @@ sol_rawData<-read.table(fNameSol,header=F)
 solutionPhase<-t(sol_rawData[1:nMark,3:(2+numHaplo)])
 path_table_Myprog <- getOptimalPath(dataPhased=data_phasedMyprog,
                                     dataSolution=solutionPhase,nInd=nInd,nMark=nMark,ploidy=ploidy)
+path_table_Myprog <- compute_switchError(path_table=path_table_Myprog,nInd=nInd,nMark=nMark)
 write.csv(path_table_Myprog,paste("switch_error ",nInd,"_m_",nMark,".csv",sep=""))
 
 
