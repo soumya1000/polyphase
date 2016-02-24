@@ -119,7 +119,7 @@ compute_switchError <- function(path_table=path_table,nInd,nMark)
   
   return(path_table)
 }
-process_MyprogOutput <- function (fNamemyProg,ploidy)
+process_dataFile <- function (fNamemyProg,ploidy)
 {
   #read output from my program
   phasedTxtMyprog <- readLines(fNamemyProg,encoding="UTF-8")
@@ -143,14 +143,15 @@ nInd <- as.numeric(args[4])
 nMark <- as.numeric(args[5])
 
 numHaplo <- nInd*ploidy
-#read phased out from phasing method
-data_phasedMyprog <- process_MyprogOutput(fNamemyProg=fNamemyProg,ploidy=ploidy)
+#read phased output from phasing method
+data_phasedMyprog <- process_dataFile(fNamemyProg=fNamemyProg,ploidy=ploidy)
 #read solution
-sol_rawData<-read.table(fNameSol,header=F)
-solutionPhase<-t(sol_rawData[1:nMark,3:(2+numHaplo)])
+solutionPhase<-process_dataFile(fNamemyProg=fNameSol,ploidy=ploidy)
+
 path_table_Myprog <- getOptimalPath(dataPhased=data_phasedMyprog,
                                     dataSolution=solutionPhase,nInd=nInd,nMark=nMark,ploidy=ploidy)
 path_table_Myprog <- compute_switchError(path_table=path_table_Myprog,nInd=nInd,nMark=nMark)
-write.csv(path_table_Myprog,paste("switch_error ",nInd,"_m_",nMark,".csv",sep=""))
+path_table_Myprog <- data.frame(Num_heteroMarkers= path_table_Myprog$Num_hetero,Switch_error=path_table_Myprog$Switch_error)
+write.csv(path_table_Myprog,paste("switch_error.csv",sep=""))
 
 
