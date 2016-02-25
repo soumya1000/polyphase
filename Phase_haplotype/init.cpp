@@ -44,9 +44,7 @@ int main(int argc, char *argv[])
   int dScaleFactor=0;
   
   haploObj.initial_call_actions(ipFilename); 
-  std::remove("scaling.in");
-  std::remove("poly_phase.dat");
-  em_hmm_genotype HMM_geno_Obj;
+   em_hmm_genotype HMM_geno_Obj;
   get_initial_vlaues(HMM_geno_Obj,haploObj);   
   
   Double obj_fun = HMM_geno_Obj.func_eval_local(); 

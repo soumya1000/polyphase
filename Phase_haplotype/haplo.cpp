@@ -77,9 +77,7 @@ void Chaplotypes::initial_call_actions(string iFilename)
   m_input.log_variables();
   initialise_param();
   optimise_param_helper();
-  std::remove("state_space.txt"); 
-  std::remove("Hmm_params.txt");
-  //cout << "Chaplotypes::initial_call_actions() END" << endl;
+    //cout << "Chaplotypes::initial_call_actions() END" << endl;
 }
 void Chaplotypes::restore_prevstate()
 {
@@ -349,32 +347,24 @@ void Chaplotypes::optimise_param_helper()
 	  input_file << "\t" << "'recomb_"+ std::to_string(iCount)+"'" ;
       }
       
-      
-    /* input_file << endl << endl << "interface" << endl << " analysis_driver = 'phase_sim'" << endl << " file_tag" << endl 
-    << " file_save" <<endl << " fork" << endl<< " parameters_file = 'params.in'" << endl << "results_file    = 'results.out'" << endl;*/
     char result[ PATH_MAX ];
-  ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
-  string path=  std::string( result, (count > 0) ? count : 0 );
-  std::size_t found = path.find_last_of("/\\");
-  path = path.substr(0,found) ;
-  cout << endl << path <<endl;
-
-     // if ( path != NULL)
-      {
-	 
-	    std::stringstream ss;
-	    //string p1= "/run/media/root/Data/polyploid";
-	    ss << " analysis_driver = \" " << path << "/phase_sim\" ";
-	     input_file << endl << endl << "interface" << endl << ss.str() << endl 
+    ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
+    string path=  std::string( result, (count > 0) ? count : 0 );
+    std::size_t found = path.find_last_of("/\\");
+    path = path.substr(0,found) ;
+    
+    if ( !path.empty())
+    {
+	 std::stringstream ss;
+	 ss << " analysis_driver = \" " << path << "/phase_sim\" ";
+	 input_file << endl << endl << "interface" << endl << ss.str() << endl 
 	  << " fork" << endl<< " parameters_file = 'params.in'" << endl << "results_file    = 'results.out'" << endl;
-	   /* input_file << endl << endl << "interface" << endl << " analysis_driver = 'phase_sim'" ss.str() << endl 
-	  << " fork" << endl<< " parameters_file = 'params.in'" << endl << "results_file    = 'results.out'" << endl;*/
-      }
-     /* else
-      {
-	cout << "Path of init function not found " << endl;
-	exit(1);
-      }*/
+    }
+    else
+    {
+	 cout << "Current dir of Phasing exe not found " << endl;
+	 exit(1);
+    }
       input_file << endl << "responses" << endl << " objective_functions = 1" << endl;
     
       input_file << "numerical_gradients" << endl; 

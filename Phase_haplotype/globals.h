@@ -88,6 +88,7 @@ void project_range0_1(vector<double> &inout);
 void get_map_vectors(vector<vector<int>>&input1, vector<int> &input2, vector<vector<std::pair<int,int>>> &output);
 
 bool AreSame(double a, double b);
+Double  randZeroToOne();
 bool inline pairCompare(const std::pair<int, int>& firstElem, const std::pair<int, int>& secondElem) 
 {
   return firstElem.first < secondElem.first;

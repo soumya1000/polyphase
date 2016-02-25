@@ -284,3 +284,8 @@ bool AreSame(double a, double b)
       double maxAbs  = max(fabs(a) , fabs(b));
       return (absDiff/maxAbs < EPSILON);
 }
+Double  randZeroToOne()
+{
+    srand((unsigned)time(NULL));
+    return rand() / (RAND_MAX + 1.);
+}

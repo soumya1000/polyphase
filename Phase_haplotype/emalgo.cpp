@@ -10,12 +10,11 @@
 em_hmm_genotype::em_hmm_genotype()
 {
     //cout << "em_hmm_genotype::em_hmm_genotype() START" << endl;
-  //  m_params_file.width(5);
+ 
     m_hap_data.restore_prevstate();
     get_total_stateSpace();  
     get_current_stateSpace();
-//    m_params_file.open ("state_space.txt",ios::app|ios::in); 
-    
+   
   // cout << "em_hmm_genotype::em_hmm_genotype() END" << endl;
  }
 
@@ -26,9 +25,7 @@ em_hmm_genotype::~em_hmm_genotype()
 
 void em_hmm_genotype::initialise_model_param()
 {
-    //m_hap_data.initialise_param(); 
-    //m_hap_data.log_param_hap();  
-    update_HMM_param();
+     update_HMM_param();
     log_param(); 
 }
 
@@ -73,19 +70,6 @@ void em_hmm_genotype::get_total_stateSpace()
 	dakota_map.push_back(temp1);
 	dakota_map.push_back(temp2);
 	dakota_map.push_back(temp3);
-    /*   stcount =0;
-	for(auto  &it:m_total_states)
-	{
-	  cout << stcount << " " ;
-	  for(auto jt : it.values)
-	  {
-	      cout << jt << " " ;
-	  }
-	  cout << "  Weight:" << it.weight;
-	  cout << endl;
-	  ++stcount;
-	}
-	cout << "State space has " << m_total_states.size() << " states" << endl; */
     // cout<< "CHK em_hmm_genotype::get_total_stateSpace() END" << endl; 
 }
 
@@ -179,20 +163,6 @@ void em_hmm_genotype::get_current_stateSpace()
  
     myFile.close();
   }
-       
-     //print values
- /*   cout << "Current state space" << endl;
-     int marker =0, indcnt=0;
-     for(auto  &it:m_current_states)
-     {
-        cout << "marker: " << marker << " " ;
-	for(auto jt : it)
-	{   
-	      cout << jt << " " ;
-	}
-	++marker;
-	cout << endl;	
-     }*/
   //cout<< "CHK em_hmm_genotype::get_current_stateSpace() END" << endl; 
 }
 void em_hmm_genotype::update_HMM_param()
@@ -228,44 +198,10 @@ void em_hmm_genotype::update_HMM_param()
 	compute_geno_given_clst_v(); 
 	compute_fwd_prob();  
 	compute_bckwd_prob();  
-	compute_clst_given_geno_v(); 
-	
-	/*tbb::tick_count before = tbb::tick_count::now();
-	compute_clust_given_v();  
-	tbb::tick_count after = tbb::tick_count::now();
-	time_count.emplace_back((after - before).seconds() );
-		
-	before = tbb::tick_count::now();
-	compute_geno_given_clst_v(); 
-	after = tbb::tick_count::now();
-	time_count.emplace_back((after - before).seconds() );
-	       
-	before = tbb::tick_count::now();
-	compute_fwd_prob();  
-	after = tbb::tick_count::now();
-	time_count.emplace_back((after - before).seconds() );
-		
-	before = tbb::tick_count::now();
-	compute_bckwd_prob();  
-	after = tbb::tick_count::now();
-	time_count.emplace_back((after - before).seconds() );
-		
-	before = tbb::tick_count::now();
-	compute_clst_given_geno_v(); 
-	after = tbb::tick_count::now();
-	time_count.emplace_back((after - before).seconds() );*/
-	  
+	compute_clst_given_geno_v(); 	  
    }
    
-   /* cout<< "compute_clust_given_v" << " compute_geno_given_clst_v  " << " compute_fwd_prob " 
-     " compute_bckwd_prob "<< " compute_clst_given_geno_v "<<  endl ;
-
-     for(auto  &it:time_count)
-     {
-	   cout<< it << " ";      
-     }
-     
-     */
+  
     catch(const std::exception& e)
    {
 	std::cout << e.what() << '\n';
@@ -351,21 +287,15 @@ void em_hmm_genotype::compute_clust_given_v()
 		  state_prevMarker = m_current_states[markCnt-1];
 		  for(int fromCount=0;fromCount< num_states;++fromCount)
 		  {
-		      // cout <<fromCount << " ";
 			frmStVec = m_total_states[state_prevMarker[fromCount]].values;	 
-		        //frmStVec = m_total_states[fromCount];
-			//get the permutations of the from state vector
-			vector_permutation(frmStVec,tempVec,fromPerms);
-			//dFinalValue = dFinalValue + m_hap_data.compute_trans_prob_bet_clst_tuples(markCnt-1,fromPerms,toStVec);
+		 	vector_permutation(frmStVec,tempVec,fromPerms);
 			dTemp =  m_hap_data.compute_trans_prob_bet_clst_tuples(markCnt-1,fromPerms,toStVec);
 			fromPerms.clear();
 			dFinalValue += dTemp;			
 		  }		    
 		   markerData[stateCount]=dFinalValue;
-		    //markerTransitions[stateCount]=stateValues;
 	      });
 	        m_clst_given_v[markCnt]=markerData;   
-		//m_current_transitions.emplace_back(markerTransitions);
 	  }
    }
   
@@ -386,13 +316,12 @@ void em_hmm_genotype::compute_geno_given_clst_v()
   
   vector< vector<std::pair<int,int>>> Map_Haplos_states;
   vector<Double>clustCurMarker;
-  //cout << "num_states " << num_states << endl;
+ 
    try
   {
       for(int indCount=0;indCount<n_individuals;++indCount)
       {
 	      genoCurInd = m_hap_data.m_input.m_genotypes[indCount];   
-	      // cout << indCount << endl;
 	      for(int markCount=0; markCount < n_markers; ++markCount)  
 	      {
 		    vector<Double> markerData(num_states);
@@ -402,7 +331,7 @@ void em_hmm_genotype::compute_geno_given_clst_v()
 		    haplo_vector = genoCurInd[markCount];  
 		    vector_permutation(haplo_vector,temp,permuted_haplotypes);		    
 		    states_curMarker =  m_current_states[markCount];
-		   // cout << "marker " << markCount << endl;
+		
 		    parallel_for(int(0), num_states, [this,&markCount,&permuted_haplotypes,&states_curMarker,&markerData,&thetaCurMarker,&clustCurMarker](int stateCount)throw()
 		    {
 			  long int ihaplo;
@@ -441,9 +370,8 @@ void em_hmm_genotype::compute_geno_given_clst_v()
 			    // final_value = exp(log(final_value)+log(clustCurState[stateCount]));
 			    final_value *= clustCurMarker[stateCount];
 			    markerData[stateCount]=(final_value);
-			   // cout <<"Sc " <<stateCount << ":Fv  " << final_value << "* ";
-		    });
-		   // cout << endl;
+		  });
+		
 		    permuted_haplotypes.clear();  
 		    m_geno_given_clst_v[indCount].emplace_back(markerData);
 	      }
@@ -919,55 +847,7 @@ void em_hmm_genotype::compute_clst_given_geno_v()
 		  m_clst_given_geno_v[indCount].push_back(markerData);
 	    }
     }
-    // cout<< "CHK compute_clst_given_geno_v End" << endl;
- 
-  //cout<< "CHK compute_clst_given_geno_v Start" << endl;  
- /* vector<Double> FwdProbCurMark, BckwrdProbCurMark;  
-  vector<int> currentMark_states,stateVec,tempVec;
-  vector<vector<int>> perms_frmState,indData;
-  int curState,numPerms;
-  Double dTemp;
-  for(int indCnt = 0; indCnt < n_individuals; indCnt++)
-  {
-      vector<vector<Double>>  individualData;  
-      indData = m_current_states[indCnt];
-      for(int markCnt=0; markCnt < n_markers ;markCnt++)
-      {
-	  vector<Double> markerData;
-	  FwdProbCurMark = m_fwd_probs[indCnt][markCnt];
-	  BckwrdProbCurMark = m_bckwd_probs[indCnt][markCnt];
-	  currentMark_states = indData[markCnt];
-    
-	  for(int stateCount=0; stateCount < num_states; stateCount++)
-	  {
-	      curState = currentMark_states[stateCount] ;
-	      stateVec = m_total_states[curState].values;
-	  
-	      dTemp = FwdProbCurMark[stateCount]*BckwrdProbCurMark[stateCount];
-	      markerData.emplace_back(dTemp);
-	  }
-	  
-	  individualData.push_back(markerData);
-	}
-      
-	m_clst_given_geno_v.push_back(individualData);
-      //m_clst_given_geno_v.insert(m_clst_given_geno_v.begin()+indCnt,individualData);
-  }*/
-  
-    /*  std::vector< vector <Double>> IndData = m_clst_given_geno_v[0];  
-      
-      for(std::vector< vector<Double>>::iterator i = IndData.begin(); i != IndData.begin()+2;i++)
-      {
-	    for(std::vector<Double>::iterator j= (*i).begin(); j!=(*i).end() ;j++) 
-	    {
-		cout <<  (*j) << "  " ;
-	    }
-	  
-	    cout << endl << " ************** **************** ************* ************ *********** " << endl;
-       }*/
-    
-  //cout<< "CHK compute_clst_given_geno_v End" << endl;
-    
+    // cout<< "CHK compute_clst_given_geno_v End" << endl; 
 }
   
 void em_hmm_genotype::log_param()
@@ -976,8 +856,7 @@ void em_hmm_genotype::log_param()
     std::ofstream myReadFile;
     myReadFile.open("CHKING.txt");
      
-    
-  /*  myReadFile << endl<<"***** compute_clust_given_v*****"  << endl;
+    myReadFile << endl<<"***** compute_clust_given_v*****"  << endl;
   
     for(auto  &it:m_clst_given_v)
     { 
@@ -1009,7 +888,7 @@ void em_hmm_genotype::log_param()
 		myReadFile << endl;
 	  }
 	++indcnt;
-    }*/
+    }
     
     myReadFile <<endl << " **********Fwd probs**********"  << endl;
     indcnt=0;  
@@ -1028,7 +907,7 @@ void em_hmm_genotype::log_param()
 	 ++indcnt;
       }
        
-    /* myReadFile <<endl << " **********Bckwd probs**********"  << endl;
+    myReadFile <<endl << " **********Bckwd probs**********"  << endl;
       indcnt=0;  
       for(auto &kvp: m_bckwd_probs)
       {
@@ -1043,7 +922,7 @@ void em_hmm_genotype::log_param()
 	      ++marker;
 	  }
 	 ++indcnt;
-       }*/
+       }
     
      myReadFile <<endl << " **********compute_clst_given_geno_v**********"  << endl;
       indcnt=0;  
@@ -1225,9 +1104,8 @@ Double em_hmm_genotype::func_eval_local()
  
       functionEval = functionEval + dIndValue;
    }
-   cout<< "CHK em_hmm_genotype::func_eval_local() B4: " << functionEval<< endl; 
+  // cout<< "CHK em_hmm_genotype::func_eval_local() B4: " << functionEval<< endl; 
    functionEval = functionEval*-1;
-   //
  
    ifstream scale_file("scaling.in");  
    if(scale_file.is_open())
@@ -1243,8 +1121,8 @@ Double em_hmm_genotype::func_eval_local()
 		  --scaler;	    
 	      }
 	  }
-      cout << "Scaler " <<  scaler << endl;
-      cout<< "CHK em_hmm_genotype::func_eval_local() Aft: " << functionEval<< endl;
+      //cout << "Scaler " <<  scaler << endl;
+      //cout<< "CHK em_hmm_genotype::func_eval_local() Aft: " << functionEval<< endl;
    }
    update_statespace();
    return abs(functionEval);
@@ -1259,37 +1137,25 @@ Double  em_hmm_genotype::diff_eval_local(int index)
   
   if(index < (n_markers*n_clusters))    
   {
-    //if(index == 0 )
-    //{
-     // cout << endl<<" theta grads" << endl;
-    //}
-    iCurMarker = dakota_map[0][index].marker;
-    iCurcluster = dakota_map[0][index].cluster;
-    grad_value = get_theta_gradient(iCurcluster,iCurMarker);
+	iCurMarker = dakota_map[0][index].marker;
+	iCurcluster = dakota_map[0][index].cluster;
+	grad_value = get_theta_gradient(iCurcluster,iCurMarker);
   }
 
   else if((index < (2*n_markers*n_clusters)) && (index >=(n_markers*n_clusters)))
   {
-    // if(index == (n_markers*n_clusters) )
-    //{
-     // cout << endl<<" alpha grads" << endl;
-    //}
-    iCurMarker = dakota_map[1][index].marker;
-    iCurcluster = dakota_map[1][index].cluster;
-    grad_value = get_alpha_gradient(iCurcluster,iCurMarker);
+	iCurMarker = dakota_map[1][index].marker;
+	iCurcluster = dakota_map[1][index].cluster;
+	grad_value = get_alpha_gradient(iCurcluster,iCurMarker);
   }
 
   else
   {
-    //if(index == (n_markers*n_clusters*2) )
-    //{
-     // cout << endl<<" Recomb grads" << endl;
-    //}
-    iCurMarker = dakota_map[2][index].marker;
-    grad_value = get_recomb_gradient(iCurMarker+1);
+	iCurMarker = dakota_map[2][index].marker;
+	grad_value = get_recomb_gradient(iCurMarker+1);
   }
   
- return grad_value;
+  return grad_value;
   //cout<< "CHK em_hmm_genotype::diff_eval_local() END" << endl; 
 }
 
@@ -1667,7 +1533,7 @@ Double  em_hmm_genotype::get_recomb_gradient(int iCurMarker)
 
 void em_hmm_genotype::resolve_phase()
 {
-    cout << "em_hmm_genotype::resolve_phase() START" << endl;
+      //cout << "em_hmm_genotype::resolve_phase() START" << endl;
       Phase PhaseObj;
       //vector<vector<vector<int>>> orderedStates;
       vector<vector<vector<int>>> orderedStates;
@@ -1684,43 +1550,18 @@ void em_hmm_genotype::resolve_phase()
       //m_params_file.close(); 
       
       log_results(orderedStates,final_Phase);
-      cout << "em_hmm_genotype::resolve_phase() END" << endl;
+    //  cout << "em_hmm_genotype::resolve_phase() END" << endl;
 }
 
 void em_hmm_genotype::log_results(vector<vector<vector<int>>> &orderedStates, vector<vector<vector<int>>> &final_Phase)
 {
-      cout << "em_hmm_genotype::log_results() START" << endl;
+     // cout << "em_hmm_genotype::log_results() START" << endl;
       ofstream clusters_file,phase_file; 
       int ind=0;
       clusters_file.open("Phase_clusters.txt");
       phase_file.open("Phased_haplo.txt");
       vector<vector<int>> indData;
       
-    /* for(auto &kvp:orderedStates)
-      {
-	clusters_file << "Ind " << ind << endl;
-	for(auto kv:kvp)
-	{
-	    for(auto k:kv)
-	      clusters_file << k << ",";     
-	    clusters_file << "  ";
-	}
-	clusters_file << endl;
-	++ind;
-      }
-      ind=0;
-      for(auto &kvp:final_Phase)
-      {
-	phase_file << "Ind " << ind << endl;
-	for(auto kv:kvp)
-	{
-	    for(auto k:kv)
-	      phase_file << k << ",";     
-	    phase_file << "  ";
-	}
-	phase_file << endl;
-	++ind;
-      }*/
       clusters_file << n_individuals<<endl;
       phase_file << n_individuals<<endl;
       clusters_file << n_markers<<endl;
@@ -1759,13 +1600,19 @@ void em_hmm_genotype::log_results(vector<vector<vector<int>>> &orderedStates, ve
       
       phase_file.close();
       clusters_file.close();
-      //std::remove("Phase_param.in");
-      cout << "em_hmm_genotype::log_results() END" << endl;
+      std::remove("Phase_param.in");
+      std::remove("scaling.in");
+      std::remove("dakota.rst");
+      std::remove("state_space.txt"); 
+      std::remove("dakota_param.in");
+      std::remove("dakota_param.out");
+      std::remove("dakota_param_std.out");
+     // cout << "em_hmm_genotype::log_results() END" << endl;
 }
 
 void em_hmm_genotype::updateConvergedState()
 {
-   cout << "em_hmm_genotype::updateConvergedState() START" << endl;
+   //cout << "em_hmm_genotype::updateConvergedState() START" << endl;
    std::ifstream myReadFile;
    myReadFile.open("dakota_param.out");
    std::string line,lineObj,line1,line2,stemp;
@@ -1858,7 +1705,7 @@ void em_hmm_genotype::updateConvergedState()
    ss << "statespace " << i_iteration ;
    stemp = ss.str();
    myReadFile.close();
-  // cout << "stemp " << stemp << endl;
+ 
    /*********NOW retrieve the state space************************/
    myReadFile.open("state_space.txt");
     while(getline(myReadFile,line))
@@ -1892,21 +1739,5 @@ void em_hmm_genotype::updateConvergedState()
 	 }
 	 genoDataTemp.clear();       
       
-    
-    /*  myReadFile.close();
-     cout << "Current state space" << endl;
-     int marker =0, indcnt=0;
-     for(auto  &it:m_current_states)
-     {
-        cout << "marker: " << marker << " " ;
-	for(auto jt : it)
-	{   
-	      cout << jt << " " ;
-	}
-	++marker;
-	cout << endl;	
-     }*/
-  
- 
-  cout << "em_hmm_genotype::updateConvergedState() END" << endl;
+   //cout << "em_hmm_genotype::updateConvergedState() END" << endl;
 }
