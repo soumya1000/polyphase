@@ -66,25 +66,26 @@ void  particle_filter::filter_run(const vector<vector<vector<Double>>> &hmm_valu
 void particle_filter::filter_states(vector<int> &sortedSts, const vector<Double>&tot_Space,vector<int> &upd_StateSpace,Chaplotypes &HmmObj)
 {
       //cout << "particle_filter::filter_states Start" << endl;
-      int iStateskeep = (sortedSts.size()/3); //keep one third the number of states      
+      int iStateskeep = (num_states/3); //keep one third the number of states      
       int inew_states = num_states - (iStateskeep);
       int itotal_states= tot_Space.size();
       std::vector<int> upd_StateSpace_temp;
+      
       upd_StateSpace =std::vector<int>(iStateskeep);      
       //ADD good states which we want to retain in next iteration
-      std::transform( sortedSts.begin(), sortedSts.begin()+(iStateskeep-1), upd_StateSpace.begin(),
+      std::transform( sortedSts.begin(), sortedSts.begin()+(iStateskeep), upd_StateSpace.begin(),
 	      [] (int const& ms){ return ms;}); 
-      
-      std::vector<int> statesExclude(iStateskeep*2);   
     
+      std::vector<int> statesExclude(iStateskeep*2);      
       //save good states which we want to retain in next iteration, to avoid re-sampling them at the end
       std::transform( sortedSts.begin(), sortedSts.begin()+(iStateskeep), statesExclude.begin(),
-	      [] (int const& ms){ return ms;});
+	      [] (int const& ms){ return ms;});     
       //save bad states which we want to eliminate from next iteration, to avoid re-sampling them at the end
       std::transform( sortedSts.rbegin(), sortedSts.rbegin()+(iStateskeep), statesExclude.begin()+(iStateskeep),
 	      [] (int const& ms){ return ms;});
+     
       std::sort(statesExclude.begin(),statesExclude.end());
-      
+   
       //keep track of remaining states after excluding good and bad states
       std::vector<int> remaining_states (itotal_states);
       std::generate_n (remaining_states.begin (),itotal_states, [] { static int i {0}; return i++; });    

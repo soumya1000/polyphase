@@ -62,8 +62,7 @@ int main(int argc, char *argv[])
   
   if(system("dakota -i dakota_param.in -o dakota_param.out > dakota_param_std.out") == 0) 
   {
-	HMM_geno_Obj.update_statespace(); 
-        HMM_geno_Obj.resolve_phase();
+	HMM_geno_Obj.resolve_phase();
   }
   else
   {

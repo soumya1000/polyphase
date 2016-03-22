@@ -1494,7 +1494,7 @@ void em_hmm_genotype::log_results(vector<vector<vector<int>>> &orderedStates, ve
 
 void em_hmm_genotype::updateConvergedState()
 {
-   cout << "em_hmm_genotype::updateConvergedState() START" << endl;
+  //cout << "em_hmm_genotype::updateConvergedState() START" << endl;
    std::ifstream myReadFile;
    myReadFile.open("dakota_param.out");
    std::string line,lineObj,line1,line2,stemp;
@@ -1504,7 +1504,7 @@ void em_hmm_genotype::updateConvergedState()
    std::vector<vector<int>> genoDataTemp;
    std::stringstream ss;
     double dTemp,dObjective;
-   
+   bool foundStatespace= 0;
    //################################## Read output file from Dakota and go to optimal params in that file ################################################3
    while(myReadFile.good())
    {
@@ -1564,7 +1564,7 @@ void em_hmm_genotype::updateConvergedState()
      
      dObjective = stold(lineObj);
    
-    num_Params =  (n_markers* n_clusters * 2) + (n_markers-1) +3 ;
+    num_Params =  (n_markers* n_clusters * 2) + (n_markers-1) +3 ; // total number of fiels in poly_phase.dat
 
    //########################## Identify the iteration in which we got best objective to retrive the statespace###############
     myReadFile.open("poly_phase.dat");
@@ -1583,6 +1583,8 @@ void em_hmm_genotype::updateConvergedState()
 	ss.str(std::string());
 	++i_iteration;
    }
+   if(i_iteration >1) //if state space number is always one less than iteration pointed in poly_phase.dat, but 1 and 2 in statespace.txt both point to 1 in poly_phase.dat
+     --i_iteration;
    ss.str(std::string());
    ss << "statespace " << i_iteration ;
    stemp = ss.str();
@@ -1594,16 +1596,24 @@ void em_hmm_genotype::updateConvergedState()
     {
 	     if(line.find(stemp)!=string::npos) // search
 	    {
+		  foundStatespace = 1;
 		  break;
 	    }
 	 
      }
-
-      m_current_states.clear();    
-      getline(myReadFile,line);       
-      buf_stream.str(line);
-      m_current_states = vector<int>(istream_iterator<int>(buf_stream), istream_iterator<int>()); 
-      myReadFile.close();  
+     if(!foundStatespace) // fetch the latest state space
+    {
+	  myReadFile.close();
+	  get_current_stateSpace();
+    }
+    else
+    {
+	m_current_states.clear();    
+	getline(myReadFile,line);       
+	buf_stream.str(line);
+	m_current_states = vector<int>(istream_iterator<int>(buf_stream), istream_iterator<int>()); 
+	myReadFile.close();  
+    }
  
-  cout << "em_hmm_genotype::updateConvergedState() END" << endl;
+ // cout << "em_hmm_genotype::updateConvergedState() END" << endl;
 }
