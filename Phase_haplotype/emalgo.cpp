@@ -10,11 +10,11 @@
 em_hmm_genotype::em_hmm_genotype()
 {
     //cout << "em_hmm_genotype::em_hmm_genotype() START" << endl;
- 
+  
     m_hap_data.restore_prevstate();
     get_total_stateSpace();  
     get_current_stateSpace();
-   
+    
   // cout << "em_hmm_genotype::em_hmm_genotype() END" << endl;
  }
 
@@ -25,7 +25,7 @@ em_hmm_genotype::~em_hmm_genotype()
 
 void em_hmm_genotype::initialise_model_param()
 {
-     update_HMM_param();
+    update_HMM_param();
     log_param(); 
 }
 
@@ -70,6 +70,7 @@ void em_hmm_genotype::get_total_stateSpace()
 	dakota_map.push_back(temp1);
 	dakota_map.push_back(temp2);
 	dakota_map.push_back(temp3);
+   
     // cout<< "CHK em_hmm_genotype::get_total_stateSpace() END" << endl; 
 }
 
@@ -86,10 +87,8 @@ void em_hmm_genotype::get_current_stateSpace()
   // Read the statespace from previous instance stored in file state_space.txt
   if(myReadFile.good())
   {
-     // myReadFile.open("state_space.txt");
+    
       istringstream buf_stream;
-      std::vector<vector<int>> genoDataTemp;
-      
       while(myReadFile.good())
       {
 	if(line.find("statespace")!=string::npos) // search
@@ -108,29 +107,13 @@ void em_hmm_genotype::get_current_stateSpace()
 	getline(myReadFile,line);
 	++count;
       }
-      getline(myReadFile,line);
-      m_current_states.clear();
-    
-      getline(myReadFile,line);
+  
+      m_current_states.clear();    
+      getline(myReadFile,line); 
+      getline(myReadFile,line);	
+      buf_stream.str(line);
+      m_current_states = vector<int>(istream_iterator<int>(buf_stream), istream_iterator<int>()); 
       
-      for(int jcount=0;jcount<n_markers;++jcount)
-      {
-	   getline(myReadFile,line);	
-           buf_stream.str(line);
-           genoDataTemp.emplace_back(istream_iterator<int>(buf_stream), istream_iterator<int>());
-	   buf_stream.clear();	   
-      }
-	 
-	 for(int j=0;j<n_markers;++j)
-	 {
-	    vector<int> temp;
-	    
-	    for(int i =0; i < num_states;++i)
-		temp.emplace_back(genoDataTemp[j][i]);	
-	    
-	    m_current_states.emplace_back(temp);
-	 }
-	 genoDataTemp.clear();       
   }
   
   else // sample the statespace for the very first instance 
@@ -139,42 +122,33 @@ void em_hmm_genotype::get_current_stateSpace()
     std::ofstream myFile;
     int indcnt=0,marker;
     myFile.open("state_space.txt"); 
-   
-    //we sample separate state space for different individuals
-  
-      for(int markCount=0; markCount < n_markers; markCount++)   
-      {
-	  vector<int> markerData;	  
-	 //sample indices of 10 states according to theirs weights randomly
-	  sample(m_total_states,markerData,num_states);	  
-	  m_current_states.emplace_back(markerData);
-      }
-     
-    myFile << "statespace 1:" <<  endl<< endl;
-
+    std::vector<Double> state_weights(m_total_states.size());
+    std::transform( m_total_states.begin(), m_total_states.end(), state_weights.begin(),
+        [] (states const& ms){ return ms.weight;});
+    //we sample same state space for all markers and all ind share the same.
+    sample(state_weights,m_current_states,num_states);
+    myFile << "statespace 1:" <<  endl;
     for(auto  &it:m_current_states)
     {
-	for(auto jt : it)
-	{   
-	     myFile << jt << " " ;	 
-	}
-	myFile << endl;	
-     }
- 
+	 myFile << it << " " ;	 	 
+    }
+    myFile << endl;	
     myFile.close();
+      
   }
   //cout<< "CHK em_hmm_genotype::get_current_stateSpace() END" << endl; 
+  
 }
 void em_hmm_genotype::update_HMM_param()
 {	
- //  cout<< "CHK em_hmm_genotype::update_HMM_param() START" << endl; 
+   //cout<< "CHK em_hmm_genotype::update_HMM_param() START" << endl; 
      
    clear_variables();  
    m_hap_data.compute_trans_prob_bet_clst();
    compute_jump_prob();  
     
     vector<int> time_count;
-    
+  
   for(int marker=0;marker<n_markers;++marker)
 	m_clst_given_v .emplace_back(vector<Double>());
 	
@@ -185,7 +159,7 @@ void em_hmm_genotype::update_HMM_param()
 	m_fwd_probs.emplace_back(vector<vector<Double>> ());
 	m_bckwd_probs.emplace_back(vector<vector<Double>> ());      
     }
-  
+   
     for(int indCount=0;indCount<n_individuals;++indCount)
 	  for(int marker=0;marker<n_markers;++marker)
 	  {
@@ -194,19 +168,18 @@ void em_hmm_genotype::update_HMM_param()
 	  }
    try
    {
-        compute_clust_given_v();  
+	compute_clust_given_v();  
 	compute_geno_given_clst_v(); 
 	compute_fwd_prob();  
 	compute_bckwd_prob();  
-	compute_clst_given_geno_v(); 	  
+	compute_clst_given_geno_v(); 		  
    }
    
-  
     catch(const std::exception& e)
    {
 	std::cout << e.what() << '\n';
    }
-  //  log_param();
+  // log_param();
  // cout<< "CHK em_hmm_genotype::update_HMM_param() END" << endl;
 }
 
@@ -224,9 +197,7 @@ void em_hmm_genotype::compute_jump_prob()
    {
 	vector<Double> markerdata; 
 	dTemp= m_hap_data.m_recombinations[jCount]*m_hap_data.m_input.m_physical_distances[jCount];
-	//dTemp= 0.0001*m_hap_data.m_input.m_physical_distances[jCount];  
-	jumpProbTemp = exp(-1*dTemp);
-	
+	jumpProbTemp = exp(-1*dTemp);	
 	
 	for(int iCount=0;iCount <= n_ploidy;iCount++)
 	{
@@ -240,22 +211,21 @@ void em_hmm_genotype::compute_jump_prob()
   
   //cout << "em_hmm_genotype::compute_jump_prob() END" << endl;
 }
-
 //p(zim|v)
 void em_hmm_genotype::compute_clust_given_v()
 {
    //cout<< "CHK em_hmm_genotype::compute_clust_given_v() START" << endl;
-   vector<int> states_curMarker = m_current_states[0];
+ 
    try
    {
          // for the initial marker 0
 	  vector<Double>initialstateprobs(num_states);
-	   parallel_for(int(0), num_states, [this,&states_curMarker,&initialstateprobs](int stateCount)throw()
+	   parallel_for(int(0), num_states, [this,&initialstateprobs](int stateCount)throw()
 	   {
 	      vector<int> toStVec,tempVec;
 	      vector<vector<int>> fromPerms;
 	      Double dFinalValue =1.0;
-	       toStVec = m_total_states[states_curMarker[stateCount]].values;
+	       toStVec = m_total_states[m_current_states[stateCount]].values;
 	      // toStVec = m_total_states[stateCount];
 	      vector_permutation(toStVec,tempVec,fromPerms);
 	      	
@@ -268,34 +238,39 @@ void em_hmm_genotype::compute_clust_given_v()
 	      initialstateprobs[stateCount]=(dFinalValue);	 
 	      fromPerms.clear();
 	    });
+	   
 	  m_clst_given_v[0]= (initialstateprobs);
-	  
+	
 	  // for markers 1 to M
 	  for(int markCnt=1; markCnt < n_markers; markCnt++)
 	  {
 	      vector<Double> markerData(num_states);
-	      states_curMarker =  m_current_states[markCnt];
-	      parallel_for(int(0), num_states, [this,&states_curMarker,&markerData,&markCnt](int stateCount)throw()
+	     // states_curMarker =  m_current_states[markCnt];
+	      parallel_for(int(0), num_states, [this,&markerData,&markCnt](int stateCount)throw()
 	      {
 		  vector<int> toStVec;
 		  vector<vector<int>> fromPerms;
-		  toStVec  = m_total_states[states_curMarker[stateCount]].values;
-		   //toStVec  = m_total_states[stateCount];
+		  toStVec  = m_total_states[m_current_states[stateCount]].values;
+		   
 		  Double dTemp,dFinalValue=0.0;
-		  vector<int> state_prevMarker;
+		 
 		  vector<int> frmStVec,tempVec;
-		  state_prevMarker = m_current_states[markCnt-1];
+		  //state_prevMarker = m_current_states[markCnt-1];
 		  for(int fromCount=0;fromCount< num_states;++fromCount)
 		  {
-			frmStVec = m_total_states[state_prevMarker[fromCount]].values;	 
-		 	vector_permutation(frmStVec,tempVec,fromPerms);
+		      frmStVec = m_total_states[m_current_states[fromCount]].values;	 		      
+			//get the permutations of the from state vector
+			vector_permutation(frmStVec,tempVec,fromPerms);
+			//dFinalValue = dFinalValue + m_hap_data.compute_trans_prob_bet_clst_tuples(markCnt-1,fromPerms,toStVec);
 			dTemp =  m_hap_data.compute_trans_prob_bet_clst_tuples(markCnt-1,fromPerms,toStVec);
 			fromPerms.clear();
 			dFinalValue += dTemp;			
 		  }		    
 		   markerData[stateCount]=dFinalValue;
+		    //markerTransitions[stateCount]=stateValues;
 	      });
 	        m_clst_given_v[markCnt]=markerData;   
+		//m_current_transitions.emplace_back(markerTransitions);
 	  }
    }
   
@@ -303,25 +278,25 @@ void em_hmm_genotype::compute_clust_given_v()
    {
 	std::cout << e.what() << '\n';
     }
- // cout<< "CHK em_hmm_genotype::compute_clust_given_v()" << endl; 
+  //cout<< "CHK em_hmm_genotype::compute_clust_given_v()" << endl; 
 }
-	 
 void em_hmm_genotype::compute_geno_given_clst_v()
 {
   // cout<< "CHK em_hmm_genotype::compute_geno_given_clst_v() START" << endl;
  
   vector<Double> thetaCurMarker, clustCurState;
-  vector<int> haplo_vector,temp,states_curMarker;
+  vector<int> haplo_vector,temp;//,states_curMarker;
   vector<vector<int>> genoCurInd, permuted_haplotypes;
   
   vector< vector<std::pair<int,int>>> Map_Haplos_states;
   vector<Double>clustCurMarker;
- 
+  //cout << "num_states " << num_states << endl;
    try
   {
       for(int indCount=0;indCount<n_individuals;++indCount)
       {
 	      genoCurInd = m_hap_data.m_input.m_genotypes[indCount];   
+	   
 	      for(int markCount=0; markCount < n_markers; ++markCount)  
 	      {
 		    vector<Double> markerData(num_states);
@@ -330,16 +305,15 @@ void em_hmm_genotype::compute_geno_given_clst_v()
 		    //get the haplo vector.For eg if geno is 0 for tetraploids,  haplo_vector= {0, 0, 0, 0} as given in the inout file
 		    haplo_vector = genoCurInd[markCount];  
 		    vector_permutation(haplo_vector,temp,permuted_haplotypes);		    
-		    states_curMarker =  m_current_states[markCount];
 		
-		    parallel_for(int(0), num_states, [this,&markCount,&permuted_haplotypes,&states_curMarker,&markerData,&thetaCurMarker,&clustCurMarker](int stateCount)throw()
+		    parallel_for(int(0), num_states, [this,&markCount,&permuted_haplotypes,&markerData,&thetaCurMarker,&clustCurMarker](int stateCount)throw()
 		    {
 			  long int ihaplo;
 			  Double final_value =0.0,dTemphaplo,perm_values,dThetaOne; 
 			  vector<int>  cur_state ;
 			  vector< vector<std::pair<int,int>>> Map_Haplos_states;
 			  
-			  cur_state = m_total_states[states_curMarker[stateCount]].values;
+			  cur_state = m_total_states[m_current_states[stateCount]].values;
 			
 			  // map the state and haplo combi in unique way, for eg haplo={0, 0, 1, 1} state={2,3,3,4} map= {(0, 2),(0, 3),(1, 3),(1, 4)}
 			  get_map_vectors(permuted_haplotypes, cur_state, Map_Haplos_states);
@@ -354,7 +328,6 @@ void em_hmm_genotype::compute_geno_given_clst_v()
 				    ihaplo =   clst_it.first;
 			      
 				    // Equation (1) in Scheet & Stephans 2006  article
-				    //dTemphaplo = pow(dThetaOne,ihaplo)* pow((1.0-dThetaOne),(1.0-ihaplo));
 				    dTemphaplo = pow(dThetaOne,ihaplo);
 				    dThetaOne = 1.0-dThetaOne ; 
 				    ihaplo = 1.0-ihaplo;
@@ -367,11 +340,12 @@ void em_hmm_genotype::compute_geno_given_clst_v()
 			   }
 			  
 			    Map_Haplos_states.clear();
-			    // final_value = exp(log(final_value)+log(clustCurState[stateCount]));
+			    
 			    final_value *= clustCurMarker[stateCount];
 			    markerData[stateCount]=(final_value);
-		  });
-		
+			 
+		    });
+		  
 		    permuted_haplotypes.clear();  
 		    m_geno_given_clst_v[indCount].emplace_back(markerData);
 	      }
@@ -396,7 +370,7 @@ void  em_hmm_genotype::util_hmm_fwd(int marker,int state,int njumps,vector<vecto
     
     
     // WE FIRST work to obtain the jumpData
-    vector<int> curState= m_total_states[m_current_states[marker][state]].values;
+    vector<int> curState= m_total_states[m_current_states[state]].values;
     
     vector<int> gotTemp,currentMark_trans;  
     vector< vector<int>> T,Tfinal;
@@ -405,10 +379,7 @@ void  em_hmm_genotype::util_hmm_fwd(int marker,int state,int njumps,vector<vecto
     // fetch all the possible combinations of clusters with given number of jumps in current state
     vector_combination(curState,gotTemp, 0, njumps,T);
 
-   //data from PARTICLE FILTER
-     vector<int> states_prevMarker=m_current_states[marker-1];
-    //currentMark_trans = m_current_transitions[marker-1][state];
-    
+      
     for(int i=0;i<n_clusters;++i)
 	input_comb.emplace_back(i);
    
@@ -433,20 +404,18 @@ void  em_hmm_genotype::util_hmm_fwd(int marker,int state,int njumps,vector<vecto
 	// combine both the above values to retieve the required state-Ids
 	for(auto &iter:Tfinal)
 	{
-	    for(auto &jt:copy_Curstate)
-		iter.emplace_back(jt);
-	    
-	    std::sort(iter.begin(),iter.end());
-	  //  itTemp = std::find( m_total_states.begin(), m_total_states.end(), iter);
-	  itTemp =   std::find_if(m_total_states.begin(), m_total_states.end(),[&cm = iter](const states& m) -> bool { return cm == m.values; }); 
-	    
-	    if(itTemp!=m_total_states.end())
-	    {
-	         state_jump = std::distance( m_total_states.begin(),itTemp);
-	       //REMOVE those states filtered out by PARTICLE FILTER
-		  if((pos =std::find(states_prevMarker.begin(),states_prevMarker.end(),state_jump))!= states_prevMarker.end())
-		      jumpDatacur.emplace_back( std::distance( states_prevMarker.begin(),pos));			
-	    }
+	      for(auto &jt:copy_Curstate)
+		  iter.emplace_back(jt);
+	      
+	      std::sort(iter.begin(),iter.end());
+	      itTemp =   std::find_if(m_total_states.begin(), m_total_states.end(),[&cm = iter](const states& m) -> bool { return cm == m.values; }); 
+		
+	      if(itTemp!=m_total_states.end())
+	      {
+		    state_jump = std::distance( m_total_states.begin(),itTemp);
+		     if((pos =std::find(m_current_states.begin(),m_current_states.end(),state_jump))!= m_current_states.end())
+			jumpDatacur.emplace_back( std::distance( m_current_states.begin(),pos));	
+	       }
 	}
 	jumpData.emplace_back(jumpDatacur);	
     }
@@ -473,24 +442,21 @@ void  em_hmm_genotype::util_hmm_fwd(int marker,int state,int njumps,vector<vecto
 
 void em_hmm_genotype::util_hmm_bckwd(int marker,int state,int njumps,vector<vector<int>> &jumpData, vector<vector<Double>>&alpha_data)
 {
-      vector<Double> AlphaMarker;
+     vector<Double> AlphaMarker;
       int state_jump;
       Double dalpha_temp;
-      vector<int> input_comb,copy_Curstate,states_nextMarker;
+      vector<int> input_comb,copy_Curstate;//,states_nextMarker;
    
       vector< states> ::iterator itTemp;
    
       // WE FIRST work to obtain the jumpData
-      vector<int> curState= m_total_states[m_current_states[marker][state]].values;
+      vector<int> curState=  m_total_states[m_current_states[state]].values;//m_total_states[m_current_states[marker][state]].values;
       vector<int> gotTemp;  
       vector< vector<int>> T,Tfinal;
       vector<vector< vector<int>>> Talpha;
     
       // fetch all the possible combinations of clusters with given number of jumps in current state
       vector_combination(curState,gotTemp, 0, njumps,T);
-
-      // fetch data provided by PARTICLE FILTER
-      states_nextMarker = m_current_states[marker+1];
    
       for(int i=0;i<n_clusters;++i)
 	  input_comb.emplace_back(i);
@@ -521,15 +487,15 @@ void em_hmm_genotype::util_hmm_bckwd(int marker,int state,int njumps,vector<vect
 		  iter.emplace_back(jt);
 		
 		std::sort(iter.begin(),iter.end());
-		//itTemp = std::find( m_total_states.begin(), m_total_states.end(), iter);
+	
 		itTemp =   std::find_if(m_total_states.begin(), m_total_states.end(),[&cm = iter](const states& m) -> bool { return cm == m.values; }); 
 		
 		if(itTemp!=m_total_states.end())
 		{
 		    state_jump = std::distance( m_total_states.begin(),itTemp);
 		  //REMOVE those states filtered out by PARTICLE FILTER
-		    if((pos =std::find(states_nextMarker.begin(),states_nextMarker.end(),state_jump))!= states_nextMarker.end())
-			  jumpDatacur.emplace_back(std::distance( states_nextMarker.begin(),pos));			
+		    if((pos =std::find(m_current_states.begin(),m_current_states.end(),state_jump))!= m_current_states.end())
+			  jumpDatacur.emplace_back(std::distance( m_current_states.begin(),pos));			
 		}	      
 	    }
 	    jumpData.emplace_back(jumpDatacur);
@@ -569,16 +535,15 @@ void em_hmm_genotype::compute_fwd_prob()
       vector<Double> AlphaCurMarker;
     
       AlphaCurMarker = m_hap_data.m_alpha[0];
-      vector<int> states_curMarker;
-      states_curMarker = m_current_states[0];
+ 
       for(int indCount=0;indCount<n_individuals;++indCount)
       {
 	    genoGivenClst_cur = m_geno_given_clst_v[indCount][0];
-	    parallel_for(int(0), num_states, [this,&genoGivenClst_cur,&AlphaCurMarker,&indCount,&states_curMarker](int stateCount)throw()    
+	    parallel_for(int(0), num_states, [this,&genoGivenClst_cur,&AlphaCurMarker,&indCount](int stateCount)throw()    
 	    {
-	      vector<int> curState= m_total_states[states_curMarker[stateCount]].values;
+	      vector<int> curState= m_total_states[m_current_states[stateCount]].values;
 	      Double dTempFwdProb =1.0;
-	      //for(vector<int>::iterator j = curState.values.begin();j != curState.values.end();j++)
+	
 	      for(vector<int>::iterator j = curState.begin();j != curState.end();++j)
 	      {
 		    dTempFwdProb = dTempFwdProb *AlphaCurMarker[(*j)];
@@ -590,24 +555,21 @@ void em_hmm_genotype::compute_fwd_prob()
       
       vector<Double> jumpProbPrevMarker;
       vector<vector<Double>> FwdProbCurInd;//,alphaValTostates;
-      vector<int> states_prevMarker;
+    
       
       for(int markCnt=1; markCnt < n_markers ;markCnt++)
       {
 	     jumpProbPrevMarker = m_jump_prob[markCnt-1];
-	     states_curMarker = m_current_states[markCnt];
-	     states_prevMarker = m_current_states[markCnt-1];
-	     
-	      parallel_for(int(0), num_states, [this,&jumpProbPrevMarker,&AlphaCurMarker,&states_prevMarker,
-		&states_curMarker, &markCnt](int toStCnt)throw() 
+	  
+	     AlphaCurMarker =  m_hap_data.m_alpha[markCnt];
+	      parallel_for(int(0), num_states, [this,&jumpProbPrevMarker,&AlphaCurMarker,&markCnt](int toStCnt)throw() 
 	      {
-		    vector<int> toStVec,currentMark_trans;
+		    vector<int> toStVec;
 		    vector<Double>FwdProbPrevMarker;
 		    Double jumpVal,dsumalphaVal,dTemp,dFwdProbVal = 0.0;		    
 	  		      
-		    toStVec = m_total_states[states_curMarker[toStCnt]].values;
-		    //currentMark_trans = m_current_transitions[markCnt-1][toStCnt];	
-		 		     
+		    toStVec = m_total_states[m_current_states[toStCnt]].values;
+				 		     
 		    vector<vector<vector<int>>> JumpDatavec;
 		    vector<vector<Double>> alphaValTostates;
 		    vector<vector<int>> states_jump;
@@ -633,27 +595,23 @@ void em_hmm_genotype::compute_fwd_prob()
 		    
 		    for(int indCount=0;indCount<n_individuals;++indCount)
 		    {
-			  FwdProbPrevMarker = m_fwd_probs[indCount][markCnt-1];
-			  
+			  FwdProbPrevMarker = m_fwd_probs[indCount][markCnt-1];			  
 			  //num of jumps is zero
-			   auto position =std::find(states_prevMarker.begin(), states_prevMarker.end(), toStCnt);
-			  if(position != states_prevMarker.end())
-			      dFwdProbVal = FwdProbPrevMarker[std::distance(states_prevMarker.begin(),position)] * jumpProbPrevMarker[0];// 
-			      
+			   dFwdProbVal = FwdProbPrevMarker[toStCnt] * jumpProbPrevMarker[0];
+			  			      
 			 for(int jumpCount=1; jumpCount < n_ploidy;++jumpCount)
 			  {
 				jumpVal = (jumpProbPrevMarker[jumpCount])/binomialCoef(n_ploidy,jumpCount);	
 				states_jump = JumpDatavec[jumpCount-1];		       
 				alpha_jump = alphaValTostates[jumpCount-1];        
 				//get alpha values & values of fwd probs from prev marker
-				 dsumalphaVal=0 ;   	      
+				dsumalphaVal=0 ;   	      
 				for(int ncount=0;ncount<states_jump.size();++ncount)
 				{
 				      dTemp=0;		
 				      for(int ncomb_count=0;ncomb_count<states_jump[ncount].size();++ncomb_count)
 				      {
-					   
-					    dTemp+= FwdProbPrevMarker[states_jump[ncount][ncomb_count]];
+					    dTemp+= FwdProbPrevMarker[(states_jump[ncount][ncomb_count])];
 				      }
 				      dTemp *= alpha_jump[ncount];
 				      dsumalphaVal +=(dTemp);
@@ -667,13 +625,10 @@ void em_hmm_genotype::compute_fwd_prob()
 			  {
 				dTemp+= FwdProbPrevMarker[ncount];
 			  }
-			  dFwdProbVal += dTemp *jumpProbPrevMarker[n_ploidy]*dalphaValstate;		 
+			  dFwdProbVal += dTemp *jumpProbPrevMarker[n_ploidy]*dalphaValstate;	 
 			  dFwdProbVal *= m_geno_given_clst_v[indCount][markCnt][toStCnt];
 			  m_fwd_probs[indCount][markCnt][toStCnt]=dFwdProbVal;		
-			  // alphaValTostates.clear();
-			 // JumpDatavec.clear();
-		    }
-		    
+		    }	
 	      });
       }
      // cout << "em_hmm_genotype::compute_fwd_prob() END" << endl;       
@@ -684,7 +639,7 @@ void em_hmm_genotype::compute_bckwd_prob()
     //cout << "em_hmm_genotype::compute_bckwd_prob() START" << endl;
     
     //The backward prob at the Final marker is 1 
-    for(int indCount=0;indCount<n_individuals;++indCount)
+   for(int indCount=0;indCount<n_individuals;++indCount)
    {
 	 for(int i=0;i < num_states;++i)
 	 {
@@ -695,18 +650,15 @@ void em_hmm_genotype::compute_bckwd_prob()
    vector<Double> BckwrdProbNxtMarker;
    vector<Double> jumpProbNxtMarker;
    vector<Double> AlphaNXtMarker;
-   vector<int> states_curMarker,states_nextMarker;
+  
      // for remaining markers
     for(int markCnt = n_markers-2 ; markCnt >= 0 ;--markCnt)
     {
 	  jumpProbNxtMarker = m_jump_prob[markCnt];
 	  AlphaNXtMarker = m_hap_data.m_alpha[markCnt+1];
-	  states_curMarker = m_current_states[markCnt];
-	  states_nextMarker = m_current_states[markCnt+1];
-	  
-	  parallel_for(int(0), num_states, [this,&jumpProbNxtMarker,&AlphaNXtMarker,&states_curMarker,&states_nextMarker,
-				&markCnt](int toStCnt)throw()    
-	{
+	
+	  parallel_for(int(0), num_states, [this,&jumpProbNxtMarker,&AlphaNXtMarker,&markCnt](int toStCnt)throw()    
+	 {
 	      vector<vector<int>> states_jumpTemp;
 	      vector<vector<Double>> alpha_jumpTemp;
 	      vector<int> toStVec,currentMark_trans,curJumpstates;
@@ -714,10 +666,7 @@ void em_hmm_genotype::compute_bckwd_prob()
 	      vector<Double>geno_given_clst_v;
 	      Double jumpVal,dsumalphaVal,dTemp,dBwdProbVal = 0.0;		    
 	      		      
-	       toStVec = m_total_states[states_curMarker[toStCnt]].values;
-	      //toStVec = m_total_states[toStCnt];
-	      //currentMark_trans = m_current_transitions[markCnt][toStCnt];	
-		 		     
+	      toStVec = m_total_states[m_current_states[toStCnt]].values;
 	      vector<vector<vector<int>>> JumpDatavec;
 	      vector<vector<vector<Double>>> alphaValTostates;
 	      
@@ -739,10 +688,10 @@ void em_hmm_genotype::compute_bckwd_prob()
 		  geno_given_clst_v = m_geno_given_clst_v[indCount][markCnt+1];
 		  
 		  //num of jumps is zero
-		  auto position =std::find(states_nextMarker.begin(), states_nextMarker.end(), toStCnt);
-		  if(position != states_nextMarker.end())
+		  auto position =std::find(m_current_states.begin(), m_current_states.end(), toStCnt);
+		  if(position != m_current_states.end())
 		  {
-			dBwdProbVal = BckwrdProbNxtMarker[std::distance(std::begin(states_nextMarker),position)]
+			dBwdProbVal = BckwrdProbNxtMarker[std::distance(std::begin(m_current_states),position)]
 			*jumpProbNxtMarker[0]* geno_given_clst_v[toStCnt];
 		  }
 		  
@@ -819,27 +768,22 @@ void em_hmm_genotype::compute_clst_given_geno_v()
     // cout<< "CHK compute_clst_given_geno_v Start" << endl;  
   
     vector<Double> FwdProbCurMark, BckwrdProbCurMark;  
-    vector<int> currentMark_states,stateVec,tempVec;
+    
     vector<vector<int>> perms_frmState;//,indData;
     int curState,numPerms;
     Double dTemp;
     
    for(int indCount = 0; indCount < n_individuals; ++indCount)
     {
-	  //vector<vector<Double>>  individualData;  
-	  //indData = m_current_states[indCnt];
 	  for(int markCnt=0; markCnt < n_markers ;++markCnt)
 	  {
 		  vector<Double> markerData;
 		  FwdProbCurMark = m_fwd_probs[indCount][markCnt];
 		  BckwrdProbCurMark = m_bckwd_probs[indCount][markCnt];
-		  currentMark_states = m_current_states[markCnt];
-	    
+		 
 		  for(int stateCount=0; stateCount < num_states; ++stateCount)
 		  {
-		      curState = currentMark_states[stateCount] ;
-		    // stateVec = m_total_states[stateCount].values;
-		  
+		      curState = m_current_states[stateCount] ;
 		      dTemp = FwdProbCurMark[stateCount]*BckwrdProbCurMark[stateCount];
 		      markerData.emplace_back(dTemp);
 		  }
@@ -847,7 +791,8 @@ void em_hmm_genotype::compute_clst_given_geno_v()
 		  m_clst_given_geno_v[indCount].push_back(markerData);
 	    }
     }
-    // cout<< "CHK compute_clst_given_geno_v End" << endl; 
+    // cout<< "CHK compute_clst_given_geno_v End" << endl;
+
 }
   
 void em_hmm_genotype::log_param()
@@ -856,7 +801,8 @@ void em_hmm_genotype::log_param()
     std::ofstream myReadFile;
     myReadFile.open("CHKING.txt");
      
-    myReadFile << endl<<"***** compute_clust_given_v*****"  << endl;
+    
+   myReadFile << endl<<"***** compute_clust_given_v*****"  << endl;
   
     for(auto  &it:m_clst_given_v)
     { 
@@ -890,7 +836,7 @@ void em_hmm_genotype::log_param()
 	++indcnt;
     }
     
-    myReadFile <<endl << " **********Fwd probs**********"  << endl;
+   myReadFile <<endl << " **********Fwd probs**********"  << endl;
     indcnt=0;  
     for(auto &kvp: m_fwd_probs)
     {
@@ -907,7 +853,7 @@ void em_hmm_genotype::log_param()
 	 ++indcnt;
       }
        
-    myReadFile <<endl << " **********Bckwd probs**********"  << endl;
+     myReadFile <<endl << " **********Bckwd probs**********"  << endl;
       indcnt=0;  
       for(auto &kvp: m_bckwd_probs)
       {
@@ -940,37 +886,7 @@ void em_hmm_genotype::log_param()
 	  }
 	 ++indcnt;
        }
- /* myReadFile << endl <<" ********chosen transitions*********"  << endl;
-indcnt=0;
-for(auto  &it:m_current_transitions)
-{
-    myReadFile << "Marker "<< marker << " ";
-    state =0;
-    
-    for(auto jt : it)
-    {
-	myReadFile << "State "<< state << " ";
-	for(auto kt : jt)
-	{
-	    myReadFile << kt << " ";
-	}
-	++state;
-	myReadFile << endl;
-      }
-     ++marker;
-}
-  myReadFile << endl<<"***** transition probs*****"  << endl;
-std::map<pair<int,int>, Double> x;
-  for(size_t i= 0;i < m_hap_data.m_trans_prob_bet_clst.size();i++) 
-  {
-    myReadFile<<endl << "marker: " << marker << endl ;
-    x = m_hap_data.m_trans_prob_bet_clst[i];
-    for(  std::map<pair<int,int>, Double>::iterator j= x.begin();j!=x.end();j++) 
-    {
-      myReadFile << "(" <<(*j).first.first << "," << (*j).first.second << ") : " << (*j).second << "  ";
-    }
-    ++marker;
-  }*/
+ 
    myReadFile.close(); 
 }
 
@@ -984,19 +900,20 @@ void em_hmm_genotype::clear_variables()
   m_bckwd_probs.clear();
   m_clst_given_geno_v.clear();
   m_clst_given_v.clear();
-  //m_ev_jump_given_geno.clear();  
+ 
   //cout<< "CHK em_hmm_genotype::clear_variables() END" << endl;
 }
 
 void em_hmm_genotype::update_statespace()
 {
+      //cout << "em_hmm_genotype::update_statespace START " << endl;
       std::string Strbuffer;  
       std::stringstream ss;
-      int cur_iteration=1,latest_iteration=1, count=0;
+      int cur_iteration=1,latest_iteration=1, count=1;
       bool do_updateStatespace=0;      
       
       //check if state space update is required
-      ifstream scale_file("scaling.in");  
+     ifstream scale_file("scaling.in");  
       if(scale_file.is_open())
       {
 	    getline(scale_file,Strbuffer);	
@@ -1017,48 +934,36 @@ void em_hmm_genotype::update_statespace()
 	    ss.str(std::string());	
       }  
       infile.close();
-      if(latest_iteration > cur_iteration)
+       if(latest_iteration > cur_iteration)
       {
 	    std::ofstream myWriteFile;
 	    myWriteFile.open("scaling.in",ios::app|ios::in);
 	    myWriteFile << latest_iteration<<endl;
-	    do_updateStatespace =1;
 	    myWriteFile.close();
-      }      
 	
-      if(do_updateStatespace ==1)
-      {
-	      std::ifstream myReadFile("state_space.txt");  	      
-	      while(myReadFile)
-	      {
-		    getline(myReadFile,Strbuffer);		  
-		    if(Strbuffer.find("statespace") != string::npos) // search
-		    {
-			++count;
-		    }
-	      } 
-	      myReadFile.close();
-	      std::ofstream myWriteFile;
+	    // INVOKE PARTICLE FILTER
+	     
+	      vector<int> stateSpaceUpdated;
+	      std::vector<Double> state_weights(m_total_states.size());
+	      std::transform( m_total_states.begin(), m_total_states.end(), state_weights.begin(),
+	      [] (states const& ms){ return ms.weight;});
+	      m_part_filter.filter_run(m_clst_given_geno_v, m_current_states,
+				       state_weights,stateSpaceUpdated,m_hap_data);
+	      m_current_states.clear();	      
+	      m_current_states = stateSpaceUpdated;
+	
 	      myWriteFile.open("state_space.txt",ios::app|ios::in);
 	      myWriteFile << ".............................................................................." << endl;
-	      myWriteFile << "statespace " << (count+1) << ":" << endl << endl ; 	  
-	      // INVOKE PARTICLE FILTER
-	      vector<vector<int>> stateSpaceUpdated;  
-	      m_part_filter.filter_run(m_fwd_probs,m_bckwd_probs,
-		  m_current_states,m_total_states,stateSpaceUpdated,m_hap_data);
-	      m_current_states.clear();	      
-	      m_current_states = stateSpaceUpdated;	    
+	      myWriteFile << "statespace " << latest_iteration<< ":" << endl ;//<< endl ; 	  
 	    //update the file
-	      for(auto  &it:m_current_states)
+	      for(auto  &it:stateSpaceUpdated)
 	      {
-		    for(auto jt : it)
-		    {   
-			  myWriteFile << jt << " " ;
-		    }
-		  myWriteFile << endl;
+		      myWriteFile << it << " " ;	
 	      }
+	      myWriteFile << endl;
 	      myWriteFile.close();
       }  
+      //cout << "em_hmm_genotype::update_statespace END " << endl;
 }
 
 //p(zim|gim,jim v*}*{log[p(gim|zim, jim, v)]+log[p(zim|v,jim)]}
@@ -1067,45 +972,35 @@ Double em_hmm_genotype::func_eval_local()
    //cout<< "CHK em_hmm_genotype::func_eval_local() START" << endl; 
     Double functionEval = 0.0, dIndValue; 
     update_HMM_param();
+    vector<Double> Clst_given_Geno_V_CurMrk, Jmp_given_Geno_V_CurMrk, Geno_given_Clst_V_CurMrk,Clst_given_V;
+    int scaler =0;
+    string Strbuffer;
+    combinable<Double> objVal_mark([]() { return 0.0; });  
  
-   Double  dClstGgenoV, dJumpGgenoV, dGenoGclustV, dClustGv, dJumpGv=0.0, dMarkValue, dcurStateValue;
-   vector<Double> Clst_given_Geno_V_CurMrk, Jmp_given_Geno_V_CurMrk, Geno_given_Clst_V_CurMrk,Clst_given_V;
-  // Double dscaler=pow(10,30);
-   int scaler =0;
-   string Strbuffer;
-   
-   //double dThreshold = pow(10,50);
-   vector<int> states_curMarker;
    for(int indCnt = 0; indCnt< n_individuals;indCnt++)  
    { 
-      dIndValue = 1.0;
-      
-      for(int iCurMarker = 0; iCurMarker < n_markers; iCurMarker++)
-      {
-	  states_curMarker = m_current_states[iCurMarker];
-	  Clst_given_Geno_V_CurMrk = m_clst_given_geno_v[indCnt][iCurMarker];//p(zim|gim, v*)
-	  Geno_given_Clst_V_CurMrk = m_geno_given_clst_v[indCnt][iCurMarker];//p(gim|zim, jim, v)
-	  Clst_given_V = m_clst_given_v[iCurMarker]; // p(zim|jim,v)
-	  dJumpGgenoV = 0.0; 
-          dMarkValue = 0.0;
-           
-	  for(int iStateCount=0; iStateCount < num_states; iStateCount++)
-	  {
-	     dClstGgenoV = Clst_given_Geno_V_CurMrk[iStateCount];       
-	     dGenoGclustV = Geno_given_Clst_V_CurMrk[iStateCount];	
-	     dClustGv = Clst_given_V[iStateCount];
-	     //compute the state value and provide for IMPORTANCE SAMPLING compensation
-	     dcurStateValue = dClstGgenoV*(log(dGenoGclustV)+log(dClustGv))/m_total_states[states_curMarker[iStateCount]].weight;	     
-	     dMarkValue += dcurStateValue ;//
-	  }
-	
-          dIndValue = dIndValue*dMarkValue;           
-      }
- 
-      functionEval = functionEval + dIndValue;
+	dIndValue = 1.0;      
+	for(int iCurMarker = 0; iCurMarker < n_markers; iCurMarker++)
+	{
+	      Clst_given_Geno_V_CurMrk = m_clst_given_geno_v[indCnt][iCurMarker];//p(zim|gim, v*)
+	      Geno_given_Clst_V_CurMrk = m_geno_given_clst_v[indCnt][iCurMarker];//p(gim|zim, jim, v)
+	      Clst_given_V = m_clst_given_v[iCurMarker]; // p(zim|jim,v)
+	           
+	      parallel_for(int(0), num_states, [this,&Clst_given_Geno_V_CurMrk,&Geno_given_Clst_V_CurMrk,
+	      &Clst_given_V,&objVal_mark](int iStateCount)throw()    
+	      {
+		  //compute the state value and provide for IMPORTANCE SAMPLING compensation
+		    objVal_mark.local() += (Clst_given_Geno_V_CurMrk[iStateCount]*(log(Geno_given_Clst_V_CurMrk[iStateCount])+log( Clst_given_V[iStateCount])))/m_total_states[m_current_states[iStateCount]].weight;	     
+	      });
+	      dIndValue *=objVal_mark.combine(plus<Double>());
+	      objVal_mark.clear();		         
+	}
+  
+	functionEval += dIndValue;
    }
-  // cout<< "CHK em_hmm_genotype::func_eval_local() B4: " << functionEval<< endl; 
+   cout<< "CHK em_hmm_genotype::func_eval_local() B4: " << functionEval<< endl; 
    functionEval = functionEval*-1;
+   //
  
    ifstream scale_file("scaling.in");  
    if(scale_file.is_open())
@@ -1121,8 +1016,8 @@ Double em_hmm_genotype::func_eval_local()
 		  --scaler;	    
 	      }
 	  }
-      //cout << "Scaler " <<  scaler << endl;
-      //cout<< "CHK em_hmm_genotype::func_eval_local() Aft: " << functionEval<< endl;
+      cout << "Scaler " <<  scaler << endl;
+      cout<< "CHK em_hmm_genotype::func_eval_local() Aft: " << functionEval<< endl;
    }
    update_statespace();
    return abs(functionEval);
@@ -1151,11 +1046,11 @@ Double  em_hmm_genotype::diff_eval_local(int index)
 
   else
   {
-	iCurMarker = dakota_map[2][index].marker;
-	grad_value = get_recomb_gradient(iCurMarker+1);
+      iCurMarker = dakota_map[2][index].marker;
+      grad_value = get_recomb_gradient(iCurMarker+1);
   }
   
-  return grad_value;
+    return grad_value;
   //cout<< "CHK em_hmm_genotype::diff_eval_local() END" << endl; 
 }
 
@@ -1169,24 +1064,26 @@ Double em_hmm_genotype::get_theta_gradient(int iCluster, int iCurMarker)
     int loopEnd;
     df_theta_km = 0.0;
     vector<Double> Clst_given_Geno_V_CurMrk, Geno_given_Clst_V_CurMrk,Clst_given_V ,thetaCurMarker;
-    vector<int> haplo_vector,states_relevant,tempVec,toStVec;
+    concurrent_vector<int> states_relevant;
+    vector<int> haplo_vector,tempVec;//toStVec,states_relevant
     vector<vector<int>> permuted_haplotypes;    
     
     combinable<Double> gradtheta_state([]() { return 0.0; });     
     Clst_given_V = m_clst_given_v[iCurMarker]; // p(zim,jim|v)
     thetaCurMarker = m_hap_data.m_theta[iCurMarker];
     
-     vector<int> states_curMarker = m_current_states[iCurMarker];
+    // vector<int> states_curMarker = m_current_states[iCurMarker];
   
      //get all the states with our cluster  'iCurCluster' at the current marker iCurMarker ; rest of them become zero during differentiation.        
-    for(int iStateCount=0; iStateCount < num_states; ++iStateCount)
+    
+     parallel_for(int(0), num_states, [this,&states_relevant,&iCurCluster](int iStateCount)throw()       
     {
-         toStVec = m_total_states[states_curMarker[iStateCount]].values;
-	 if(std::find(toStVec.begin(), toStVec.end(), iCurCluster) != toStVec.end())
-	 {
-	      states_relevant.push_back(iStateCount);
-	  }
-     }
+	  vector<int> toStVec = m_total_states[m_current_states[iStateCount]].values;	  
+	  if(std::find(toStVec.begin(), toStVec.end(), iCurCluster) != toStVec.end())
+	  {
+		states_relevant.push_back(iStateCount);
+	   }
+     });
      loopEnd = states_relevant.size();
      
      for(int indCnt = 0; indCnt< n_individuals;indCnt++)
@@ -1200,7 +1097,7 @@ Double em_hmm_genotype::get_theta_gradient(int iCluster, int iCurMarker)
            vector_permutation(haplo_vector,tempVec,permuted_haplotypes);
 	  // compute {d/dtheta_km}[p(gim|zim, jim, v)], which is {d/dtheta_km}[log (p(gim|zim,theta_km)*p(zim|alpha_km,Jim,rm))]
 	   
-	   parallel_for(int(0), loopEnd, [this,&Clst_given_Geno_V_CurMrk,&Geno_given_Clst_V_CurMrk,&states_relevant, &states_curMarker,
+	   parallel_for(int(0), loopEnd, [this,&Clst_given_Geno_V_CurMrk,&Geno_given_Clst_V_CurMrk,&states_relevant,
 	      &thetaCurMarker, &permuted_haplotypes,&Clst_given_V,&gradtheta_state,&iCurCluster](int stateCount)throw()    
 	    {
 		  vector<int> cur_state;
@@ -1211,7 +1108,7 @@ Double em_hmm_genotype::get_theta_gradient(int iCluster, int iCurMarker)
 		
 		  dClstGgenoV = Clst_given_Geno_V_CurMrk[states_relevant[stateCount]];       
 		  dGenoGclustV = Geno_given_Clst_V_CurMrk[states_relevant[stateCount]];					
-		  cur_state = m_total_states[states_relevant[stateCount]].values;
+		  cur_state = m_total_states[m_current_states[states_relevant[stateCount]]].values;
 		
 		  //map the state and haplo combi in a unique way,  for eg permuted_haplotypes[i]={0,0,1,1} state={2,3,3,4} map= {(0,2),(0,3),(1,3),(1,4)}
 		  get_map_vectors(permuted_haplotypes, cur_state, Map_Haplos_states);
@@ -1273,9 +1170,7 @@ Double em_hmm_genotype::get_theta_gradient(int iCluster, int iCurMarker)
 		  dtot_stateValue  = dtot_stateValue * (dClstGgenoV/dGenoGclustV); 	
 		   // sum of all derivative for all the relevant states
 		  gradtheta_state.local() += dtot_stateValue;
-		 // dtot_IndValue = dtot_IndValue + dtot_stateValue;   
-		 // permuted_haplotypes.clear();
-		 // Map_Haplos_states.clear();
+	
 	    });
 	   
 	    //df_theta_km +=dtot_IndValue;      
@@ -1294,28 +1189,28 @@ Double  em_hmm_genotype::get_alpha_gradient(int iCluster,int iCurMarker)
   //cout<< "CHK em_hmm_genotype::get_alpha_gradient() START" << endl; 
   Double df_alpha_km=0.0,dtot_IndValue;
   int iCurCluster = iCluster,loopEnd;
-  vector<int> toStVec,states_relevant;
+  concurrent_vector<int> states_relevant;
   vector<Double> Clst_given_Geno_V_CurMrk,Clst_given_V;
   combinable<Double> gradalpha_state([]() { return 0.0; });   
   
-  vector<int> states_curMarker = m_current_states[iCurMarker];
+   //get all the states with our cluster  'iCurCluster' at the current marker iCurMarker ; rest of them become zero during differentiation.        
 
-  //get all the states with our cluster  'iCurCluster' at the current marker iCurMarker ; rest of them become zero during differentiation.        
-  for(int iStateCount=0; iStateCount < num_states; ++iStateCount)
+   parallel_for(int(0), num_states, [this,&states_relevant,&iCurCluster](int iStateCount)throw()       
   {
-	toStVec = m_total_states[states_curMarker[ iStateCount]].values;
+	//toStVec = m_total_states[states_curMarker[ iStateCount]].values;
+	vector<int> toStVec = m_total_states[m_current_states[ iStateCount]].values;
 	if(std::find(toStVec.begin(), toStVec.end(), iCurCluster) != toStVec.end())
 	{
 	    states_relevant.emplace_back(iStateCount);
 	}
-   }
+   });
    loopEnd = states_relevant.size();
    Clst_given_V =m_clst_given_v[iCurMarker];
    
     if (iCurMarker > 0) //differentiate p(zim|v) at m >0,  which is function for Transition probs as Eq 9 in Scheet & Stephans 2006
    {
-      //vector<Double> transProb_curMarker =   m_hap_data.m_trans_prob_bet_clst[iCurMarker-1];
-	vector<int> states_prevMarker = m_current_states[iCurMarker-1];
+      
+	vector<int> states_prevMarker = m_current_states;//[iCurMarker-1];
 	for(int indCnt = 0; indCnt< n_individuals;++indCnt)  
         {
 	    Clst_given_Geno_V_CurMrk = m_clst_given_geno_v[indCnt][iCurMarker];
@@ -1329,7 +1224,7 @@ Double  em_hmm_genotype::get_alpha_gradient(int iCluster,int iCurMarker)
 		  int icounter;
 		  Double const_value, var_value,dTemp,dcurStateValue =0.0,dTempvar,dTempk;
 		  vector<Double> variable_vector_const,variable_vector_var;
-		  cur_stateVec = m_total_states[states_relevant[stateCount]].values;
+		  cur_stateVec = m_total_states[m_current_states[states_relevant[stateCount]]].values;
 		  
 		  for(int fromCount=0; fromCount< num_states;fromCount++)
 		  {
@@ -1402,7 +1297,7 @@ Double  em_hmm_genotype::get_alpha_gradient(int iCluster,int iCurMarker)
 	    parallel_for(int(0), loopEnd, [this,&iCurCluster,&states_relevant,&iCurMarker,&gradalpha_state,&Clst_given_V](int stateCount)throw()
 	      {
 		  vector<int> cur_stateVec;
-		  cur_stateVec = m_total_states[states_relevant[stateCount]].values;
+		  cur_stateVec = m_total_states[m_current_states[states_relevant[stateCount]]].values;
 		  Double const_value =1.0, var_value =0.0,dTemp;
 		  //vector_permutation(cur_stateVec,tempVec,permuted_states);
 		
@@ -1423,7 +1318,6 @@ Double  em_hmm_genotype::get_alpha_gradient(int iCluster,int iCurMarker)
 		  gradalpha_state.local() += dTemp;
 		  //permuted_states.clear();   
 	     });
-	      // states_relevant.clear();
 	      df_alpha_km += gradalpha_state.combine(plus<Double>());
 	      gradalpha_state.clear();
 	}
@@ -1438,7 +1332,6 @@ Double  em_hmm_genotype::get_alpha_gradient(int iCluster,int iCurMarker)
 Double  em_hmm_genotype::get_recomb_gradient(int iCurMarker)
 {
   // cout << "em_hmm_genotype::get_recomb_gradient() START" << endl;  
-
     Double df_r_m=0.0;
     vector<Double> alphaCurMarker,Clst_given_V,Clst_given_Geno_V_CurMrk;
     combinable<Double> gradrecomb_state([]() { return 0.0; });   
@@ -1447,8 +1340,8 @@ Double  em_hmm_genotype::get_recomb_gradient(int iCurMarker)
     {
 	  alphaCurMarker = m_hap_data.m_alpha[iCurMarker];
 	  Clst_given_V =m_clst_given_v[iCurMarker];
-	  states_curMarker = m_current_states[iCurMarker];
-	  states_prevMarker = m_current_states[iCurMarker-1];
+	  states_curMarker = m_current_states;//[iCurMarker];
+	  states_prevMarker = m_current_states;//[iCurMarker-1];
 	  
 	  for(int indCnt = 0; indCnt< n_individuals;++indCnt)  
           {
@@ -1467,7 +1360,7 @@ Double  em_hmm_genotype::get_recomb_gradient(int iCurMarker)
 		       
 		      for(int fromCount=0; fromCount< num_states;fromCount++)
 		      {
-			    frm_stateVec = m_total_states[states_prevMarker[fromCount]].values;
+			    frm_stateVec = m_total_states[states_prevMarker[fromCount]].values; // states from previous marker
 			    vector_permutation(frm_stateVec,tempVec,permuted_states);   
 			    get_map_vectors(permuted_states, cur_stateVec, Map_fromTo_states);
 			    
@@ -1516,12 +1409,9 @@ Double  em_hmm_genotype::get_recomb_gradient(int iCurMarker)
 		      dTempvar = 2*Clst_given_Geno_V_CurMrk[iStateCount];
 		      dTempk = Clst_given_V[iStateCount];
 		      const_value = (dTempvar/dTempk);		
-		      //const_value = const_value * n_individuals;
 		      dcurStateValue = dcurStateValue*const_value;
-		      //dtot_IndValue = dtot_IndValue + dcurStateValue; 
 		      gradrecomb_state.local() += dcurStateValue;		      
 		});
-		 // df_r_m  += dtot_IndValue;  
 		df_r_m += gradrecomb_state.combine(plus<Double>());
 		gradrecomb_state.clear();
 	}
@@ -1533,9 +1423,8 @@ Double  em_hmm_genotype::get_recomb_gradient(int iCurMarker)
 
 void em_hmm_genotype::resolve_phase()
 {
-      //cout << "em_hmm_genotype::resolve_phase() START" << endl;
+      cout << "em_hmm_genotype::resolve_phase() START" << endl;
       Phase PhaseObj;
-      //vector<vector<vector<int>>> orderedStates;
       vector<vector<vector<int>>> orderedStates;
       vector<vector<vector<int>>> final_Phase;
       m_hap_data.m_theta.clear();
@@ -1547,15 +1436,14 @@ void em_hmm_genotype::resolve_phase()
       updateConvergedState();
       update_HMM_param();
       PhaseObj.resolvePhase(m_fwd_probs,m_clst_given_geno_v,m_hap_data,m_total_states,m_current_states,orderedStates,final_Phase);
-      //m_params_file.close(); 
-      
+     
       log_results(orderedStates,final_Phase);
-    //  cout << "em_hmm_genotype::resolve_phase() END" << endl;
+      cout << "em_hmm_genotype::resolve_phase() END" << endl;
 }
 
 void em_hmm_genotype::log_results(vector<vector<vector<int>>> &orderedStates, vector<vector<vector<int>>> &final_Phase)
 {
-     // cout << "em_hmm_genotype::log_results() START" << endl;
+      cout << "em_hmm_genotype::log_results() START" << endl;
       ofstream clusters_file,phase_file; 
       int ind=0;
       clusters_file.open("Phase_clusters.txt");
@@ -1600,19 +1488,13 @@ void em_hmm_genotype::log_results(vector<vector<vector<int>>> &orderedStates, ve
       
       phase_file.close();
       clusters_file.close();
-      std::remove("Phase_param.in");
-      std::remove("scaling.in");
-      std::remove("dakota.rst");
-      std::remove("state_space.txt"); 
-      std::remove("dakota_param.in");
-      std::remove("dakota_param.out");
-      std::remove("dakota_param_std.out");
-     // cout << "em_hmm_genotype::log_results() END" << endl;
+      //std::remove("Phase_param.in");
+      cout << "em_hmm_genotype::log_results() END" << endl;
 }
 
 void em_hmm_genotype::updateConvergedState()
 {
-   //cout << "em_hmm_genotype::updateConvergedState() START" << endl;
+   cout << "em_hmm_genotype::updateConvergedState() START" << endl;
    std::ifstream myReadFile;
    myReadFile.open("dakota_param.out");
    std::string line,lineObj,line1,line2,stemp;
@@ -1633,7 +1515,7 @@ void em_hmm_genotype::updateConvergedState()
              break;
 	}
     }
-    
+    //cout << "line1 :" << line << endl;
     for(int iCount=0;iCount < n_markers; iCount++)
     {
 	 vector<Double> tempVec;
@@ -1684,7 +1566,7 @@ void em_hmm_genotype::updateConvergedState()
    
     num_Params =  (n_markers* n_clusters * 2) + (n_markers-1) +3 ;
 
-   //*************  Identify the iteration in which we got best objective to retrive the statespace*****************
+   //########################## Identify the iteration in which we got best objective to retrive the statespace###############
     myReadFile.open("poly_phase.dat");
      getline(myReadFile, line);
   
@@ -1705,8 +1587,8 @@ void em_hmm_genotype::updateConvergedState()
    ss << "statespace " << i_iteration ;
    stemp = ss.str();
    myReadFile.close();
- 
-   /*********NOW retrieve the state space************************/
+
+   //####################################NOW retrieve the state space###############################
    myReadFile.open("state_space.txt");
     while(getline(myReadFile,line))
     {
@@ -1716,28 +1598,12 @@ void em_hmm_genotype::updateConvergedState()
 	    }
 	 
      }
-     
-     m_current_states.clear();
-     getline(myReadFile,line);
-      
-      for(int jcount=0;jcount<n_markers;++jcount)
-      {
-	   getline(myReadFile,line);	
-           buf_stream.str(line);
-           genoDataTemp.emplace_back(istream_iterator<int>(buf_stream), istream_iterator<int>());
-	   buf_stream.clear();	   
-      }
-	 
-	 for(int j=0;j<n_markers;++j)
-	 {
-	    vector<int> temp;
-	    
-	    for(int i =0; i < num_states;++i)
-		temp.emplace_back(genoDataTemp[j][i]);	
-	    
-	    m_current_states.emplace_back(temp);
-	 }
-	 genoDataTemp.clear();       
-      
-   //cout << "em_hmm_genotype::updateConvergedState() END" << endl;
+
+      m_current_states.clear();    
+      getline(myReadFile,line);       
+      buf_stream.str(line);
+      m_current_states = vector<int>(istream_iterator<int>(buf_stream), istream_iterator<int>()); 
+      myReadFile.close();  
+ 
+  cout << "em_hmm_genotype::updateConvergedState() END" << endl;
 }

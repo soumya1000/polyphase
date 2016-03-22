@@ -10,11 +10,10 @@ void pass_values(em_hmm_genotype &genoObj, map<int,Double> &var);
   
 int main(int argc, char *argv[])
 {
-	//mpfr_set_default_prec(prec);
+	
 	em_hmm_genotype HMM_geno_Obj;      
 	ifstream fin(argv[1]);
-	
-	//cout << "argv[1] " << argv[1] <<endl;
+
 	if (!fin)
 	{
 	    cerr << "\nError: failure opening " << argv[1] << endl;
@@ -75,11 +74,10 @@ int main(int argc, char *argv[])
 	      exit(-1);
 	}
     
-      // fout.precision(6); // 16 total digits
-	//fout.precision(std::numeric_limits<cpp_dec_float_50>::digits10);
+   
 	fout.setf(ios::scientific);
 	fout.setf(ios::right);
-      // fout.width(5);
+
     
 	if (ASV[0] & 1) // **** f:
 	{

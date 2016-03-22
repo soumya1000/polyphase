@@ -1,6 +1,12 @@
 #include "globals.h"
 
-
+// All global variables
+int n_individuals;
+int n_markers;
+int n_clusters;
+int n_ploidy;
+Double Recomb_InitialValue;
+int num_states;
 Double dThreshold = pow(10,-10);
 Double scaling_factor = pow(10,10);
 
@@ -136,45 +142,38 @@ void gen_combi_states(int nploidy,int nclusters,vector< states > &T)
 }
 
 
-void sample(vector<states> &input,  vector<int> &exclude,vector<int> &output,int size_output)
+void sample(vector<Double> &input, vector<int> &output,int size_output)
 {
-     /*initialize random seed: */
-      //srand (time(NULL));  
-	srand(time(0)+clock()+random());    
-	int j,k,choose,outputSize;
-	int range = input.size();
-	bool bErasebegin = false;
-	outputSize = size_output;  
-	if(output.size()== 0)
-	{
-	      output.push_back(-1); 
-	      outputSize = outputSize+1;
-	      bErasebegin = true;
-	}    
-	while (output.size() < outputSize)
-	{
-	      j = rand() % (range);       
-	      k = rand() % (range);
-	      choose = (input[j].weight < input[k].weight) ? k : j; 	      
-	      if( std::find(output.begin(), output.end(), choose)==output.end())
-	      {
-		    if( std::find(exclude.begin(), exclude.end(), choose)==exclude.end())
-		    {
-			  output.push_back(choose);    
-		    }
-	      }	
-	}     
-	if(bErasebegin)
-	{
-	    output.erase(output.begin()); 
-	}
+   srand((unsigned)time(NULL));
+   int sample_size=0,cur_index;
+   int input_size = input.size();
+   Double dinit_sum =0.0,drandomValue;
+   Double weight_sum= std::accumulate(input.begin(), input.end(),dinit_sum);
+   std::vector<Double> input_Norm;
+    
+   for ( auto &i : input ) 
+      input_Norm.emplace_back( i/ weight_sum) ;
+    
+    while(sample_size < size_output)
+    {
+	  drandomValue =  rand() / (RAND_MAX + 1.0);
+	  drandomValue -= input_Norm[0];
+	  cur_index =0;
+	  while((drandomValue>0) && (cur_index<input_size))
+	  {
+		++cur_index;
+		drandomValue -= input_Norm[cur_index];
+	  }
+	   
+	  if(std::find(output.begin(), output.end(), cur_index)==output.end())
+	  {
+	      output.emplace_back(cur_index);
+	      ++sample_size;
+	  }
+    }
+   
 }
 
-void sample(vector<states> &input,vector<int> &output,int size_output)
-{
-      vector<int> exclude{-1};
-      sample(input,exclude,output,size_output);
-}
 
 void gen_weights_states(int n, int k, vector<states> &T, vector<Double> &indiprobs)
 {

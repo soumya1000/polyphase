@@ -13,9 +13,8 @@ Chaplotypes::Chaplotypes()
 
 Chaplotypes::~Chaplotypes()
 {
-  ////cout << "Chaplotypes::~Chaplotypes()" << endl;
-  //print_param();
- // log_param_hap();
+  //cout << "Chaplotypes::~Chaplotypes()" << endl;
+ 
 }
 
 void Chaplotypes::initialise_param()
@@ -73,11 +72,12 @@ void Chaplotypes::initial_call_actions(string iFilename)
 {
   //cout << "Chaplotypes::initial_call_actions() START" << endl;
    m_input.parse_input(iFilename); 
- // n_clusters = num_clusters; 
-  m_input.log_variables();
-  initialise_param();
-  optimise_param_helper();
-    //cout << "Chaplotypes::initial_call_actions() END" << endl;
+   m_input.log_variables();
+   initialise_param();
+   optimise_param_helper();
+   std::remove("state_space.txt"); 
+   std::remove("Hmm_params.txt");
+  //cout << "Chaplotypes::initial_call_actions() END" << endl;
 }
 void Chaplotypes::restore_prevstate()
 {
@@ -119,15 +119,7 @@ void Chaplotypes::compute_trans_prob_bet_clst()
     } 
 
  //   cout << " CHK:  Chaplotypes::compute_trans_prob_bet_clst END" << endl;
-  /*std::map<pair<int,int>, long double> x;
-  for(size_t i= 0;i < m_trans_prob_bet_clst.size();i++) 
-  {
-    x = m_trans_prob_bet_clst[i];
-    for(  std::map<pair<int,int>, long double>::iterator j= x.begin();j!=x.end();j++) 
-    {
-      cout <<  (*j).first.first << "," << (*j).first.second << " : " << (*j).second << endl;
-    }
-  }*/
+ 
 }
 
 Double Chaplotypes::compute_trans_prob_bet_clst_tuples(int frmMarker,vector<vector<int>>&fromstatePerms,vector<int>&toState)
@@ -239,7 +231,6 @@ void Chaplotypes::log_param_hap(void)
 void Chaplotypes::optimise_param_helper()
 {
       //cout<< "CHK em_hmm_genotype::optimise_param_helper() START" << endl;
-      //ofstream input_file; 
       std::ofstream input_file("dakota_param.in"); 
 
       int ind=0;
@@ -255,9 +246,6 @@ void Chaplotypes::optimise_param_helper()
       string var_name;
       string method_name = "conmin_frcg";
    
-   
-      //input_file.open("phase_param.in");
-  
       input_file << "environment" << endl;
       input_file << " tabular_graphics_data" << endl;
       input_file << "  tabular_graphics_file = 'poly_phase.dat'" << endl;
@@ -347,24 +335,18 @@ void Chaplotypes::optimise_param_helper()
 	  input_file << "\t" << "'recomb_"+ std::to_string(iCount)+"'" ;
       }
       
-    char result[ PATH_MAX ];
-    ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
-    string path=  std::string( result, (count > 0) ? count : 0 );
-    std::size_t found = path.find_last_of("/\\");
-    path = path.substr(0,found) ;
-    
-    if ( !path.empty())
-    {
-	 std::stringstream ss;
-	 ss << " analysis_driver = \" " << path << "/phase_sim\" ";
-	 input_file << endl << endl << "interface" << endl << ss.str() << endl 
-	  << " fork" << endl<< " parameters_file = 'params.in'" << endl << "results_file    = 'results.out'" << endl;
-    }
-    else
-    {
-	 cout << "Current dir of Phasing exe not found " << endl;
-	 exit(1);
-    }
+	char result[ PATH_MAX ];
+	ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
+	string path=  std::string( result, (count > 0) ? count : 0 );
+	std::size_t found = path.find_last_of("/\\");
+	path = path.substr(0,found) ;
+	std::stringstream ss;
+	 
+	ss << " analysis_driver = \" " << path << "/phase_sim\" ";
+	input_file << endl << endl << "interface" << endl << ss.str() << endl 
+	<< " fork" << endl<< " parameters_file = 'params.in'" << endl << "results_file    = 'results.out'" << endl;
+	
+ 
       input_file << endl << "responses" << endl << " objective_functions = 1" << endl;
     
       input_file << "numerical_gradients" << endl; 

@@ -54,9 +54,7 @@ struct states
 
 //function declarations
 
-void sample(vector<states> &input,  vector<int> &exclude ,vector<int> &output,int size_output);
-void sample(vector<states> &input, vector<int> &output,int size_output);
-
+void sample(vector<Double> &input, vector<int> &output,int size_output);
 int factorial(int n);
 
 long int binomialCoef(int N,int r);

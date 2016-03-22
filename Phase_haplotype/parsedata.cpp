@@ -1,13 +1,6 @@
 #include "parsedata.h"
 
- // All global variables
-int n_individuals;
-int n_markers;
-int n_clusters;
-int n_ploidy;
-Double Recomb_InitialValue;
-int num_states;
-
+ 
 data_genotypes::data_genotypes()
 {
   //cout << "data_genotypes::data_genotypes()" << endl;
@@ -26,10 +19,9 @@ void data_genotypes::read_paramsFile()
      {
 	    if (paramsFile.is_open()) 
 	    {
-		  //getline(paramsFile,line);
-		   getline(paramsFile,line);
-		  
-		  getline(paramsFile,line);		  
+		  getline(paramsFile,line);
+		  getline(paramsFile,line);
+		  	  
 		  line = line.substr(line.find_first_of(":"),line.length());
 	          line = line.substr(line.find_first_of(" "),line.length());		
 		  n_clusters = stoi(line);
@@ -212,36 +204,5 @@ void data_genotypes::read_variables()
    getline(myReadFile,line);
    buf_stream.str(line);
    m_ind_ID= vector<string>(istream_iterator<string>(buf_stream), istream_iterator<string>());
-   myReadFile.close();
-   
-  /* for(const auto& kvp : m_physical_positions) 
-  {
-     cout << kvp << "\t";
-  }
-  
-  int ind=0; 
-  cout << endl;
-  for(const auto& kvp : m_genotypes) 
-  {
-    //cout << "ind" << ind << " ";     
-    for(auto kv : kvp)
-    {
-	for(auto v : kv)
-	  cout << v<<" ";	
-	cout << endl;
-    }
-  }
-  
-  for(const auto& kvp : m_ind_ID) 
-  {
-     cout << kvp << "\t";
-  }*/
+   myReadFile.close();  
 }
-
-//Test code
-/*int main(int argc, char *argv[])
-{
-  data_genotypes inputObj;
-  inputObj.parse_input();
-  inputObj.print_variables();
-}*/

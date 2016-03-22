@@ -27,8 +27,8 @@ class em_hmm_genotype
     //list of the entire statespace mapping state-id to n-tuples of ancestral clusters
     vector<states> m_total_states; //choose((N+K-1),N)
   
-    //vector<vector<vector<int>>>  m_current_states; //  ind x markers x stateIDs
-     vector<vector<int>>  m_current_states; //  ind x markers x stateIDs
+     vector<int>  m_current_states; // stateIDs
+     
     //this is analogous to transition probs of a HMM  
     map<int,vector<Double>> m_jump_prob; // nMarkers x n_clusters (J=0,1 and 2)                  
   
@@ -44,11 +44,7 @@ class em_hmm_genotype
     //an intermediate variable
     vector<vector<vector<Double>>>  m_clst_given_geno_v;//nIndividuals x nMarkers x no states
    
-    //number of jumps that occur to cluster k,J(imk)
-   // vector<vector<vector<Double>>> m_ev_jump_given_geno;//nIndividuals x nMarkers x no of Clusters
-  
-    //vector<vector<vector<Double>>> m_clst_given_v; //nIndividuals x nMarkers x no states
-    vector<vector<Double>> m_clst_given_v; // nMarkers x no states
+     vector<vector<Double>> m_clst_given_v; // nMarkers x no states
     //member functions
     
      //The first expression in Appendix C
@@ -98,8 +94,7 @@ class em_hmm_genotype
     //Numerical optimisation start    
    Double func_eval_local();    
    Double diff_eval_local(int index);  
-   // void update_param(const gsl_vector *x,int status);
-    //Numerical optimisation    End
+ 
     void initialise_model_param();
     void resolve_phase();
       

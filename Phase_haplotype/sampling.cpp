@@ -10,45 +10,15 @@ Phase::~Phase()
   
 }
 
-void Phase::resolvePhase(const vector<vector<vector<Double>>> &Fwd_probs,const vector<vector<vector<Double>>> &Clst_givenGenoV,
-			  Chaplotypes &HmmObj,const vector<states> &totStateSpace,
-		         const vector<vector<vector<int>>> &curStateSpace,vector<vector<vector<int>>> &orderedStates, vector<vector<vector<int>>> &final_Phase)
-{
-    //  cout << "CHK Phase::resolvePhase START"<<endl;
-      vector<int> chosenStates;
-      vector<vector<Double>> Fwd_probs_Ind,Clst_givenGenoV_Ind;
-      vector<vector<int>> stateSpace_Ind;
-  
-      for(int indCount=0;indCount< n_individuals;++indCount)
-      {
-	    vector<vector<int>> orderedStates_Ind;
-	    vector<vector<int>> final_Phase_Ind;
-	    
-	    Fwd_probs_Ind = Fwd_probs[indCount];
-	    Clst_givenGenoV_Ind = Clst_givenGenoV[indCount];
-	    stateSpace_Ind = curStateSpace[indCount];
-	    
-	    sample_States(Fwd_probs_Ind,Clst_givenGenoV_Ind,stateSpace_Ind,HmmObj,totStateSpace,chosenStates);  
-	    
-	     resolve_StateOrder(HmmObj,totStateSpace,chosenStates,orderedStates_Ind);  
-	    orderedStates.emplace_back(orderedStates_Ind);
-	    
-	    do_phasing(indCount,HmmObj,orderedStates_Ind,final_Phase_Ind);  
-	    final_Phase.emplace_back(final_Phase_Ind);
-	  //cout << endl;
-	    chosenStates.clear();
-      }
-   //cout << "CHK Phase::resolvePhase END"<<endl;
-}
 
 void Phase::resolvePhase(const vector<vector<vector<Double>>> &Fwd_probs,const vector<vector<vector<Double>>> &Clst_givenGenoV,
 			  Chaplotypes &HmmObj,const vector<states> &totStateSpace,
-		         const vector<vector<int>> &curStateSpace, vector<vector<vector<int>>> &orderedStates, vector<vector<vector<int>>> &final_Phase)
+		         const vector<int> &curStateSpace, vector<vector<vector<int>>> &orderedStates, vector<vector<vector<int>>> &final_Phase)
 {
-     // cout << "CHK Phase::resolvePhase START "<<endl;
+      cout << "CHK Phase::resolvePhase START "<<endl;
       vector<int> chosenStates;
       vector<vector<Double>> Fwd_probs_Ind,Clst_givenGenoV_Ind;
-      vector<vector<int>> stateSpace_Ind = curStateSpace; 
+      vector<int> stateSpace_Ind = curStateSpace; 
      
        for(int indCount=0;indCount< n_individuals;++indCount)
        {
@@ -65,82 +35,8 @@ void Phase::resolvePhase(const vector<vector<vector<Double>>> &Fwd_probs,const v
 	
 	    chosenStates.clear();
       }
-     // cout <<"CHK Phase::resolvePhase END " <<endl;
+      cout <<"CHK Phase::resolvePhase END " <<endl;
   
-}
-void Phase::sample_States(vector<vector<Double>> &Fwd_probs, vector<vector<Double>> &Clst_givenGenoV, 
-		    vector<vector<int>> &curStateSpace, Chaplotypes &HmmObj,const vector<states> &totStateSpace,vector<int> &chosenStates)
-{
-     // cout << "CHK Phase::sample_States START"<<endl;
-      vector<int> curMarkstates,fromStateVec,tempVec,toStateVec;
-      vector<vector<int>> perms_frmState;
-      int bestStateInd_loc,bestStateInd,cur_index;
-      vector<Double> curMarkVals,curMarkVals_norm,fwd_probsCurmark;
-      Double dfwdProb,dclstGV,dCurVal,dTemp,dsum_values,dinit_sum=0.0,drandomvalue;
-      
-      //normalize the values so that they add upto 1	  
-      dsum_values = std::accumulate(Clst_givenGenoV[n_markers-1].begin(), Clst_givenGenoV[n_markers-1].end(),dinit_sum);
-      for(auto &kv:Clst_givenGenoV[n_markers-1])
-      {
-	    curMarkVals_norm.emplace_back(kv/dsum_values);
-       }
-     
-     //first sample ziM ~ p(ziM|g,v)~p(g,ZiM,v) 
-      drandomvalue =  randZeroToOne();
-      cur_index =0;
-      drandomvalue -= curMarkVals_norm[0];
-      while((drandomvalue>0) && (cur_index<num_states-1))
-      {
-	    ++cur_index;
-	    drandomvalue -= curMarkVals_norm[cur_index];		
-	}
-      
-      bestStateInd = curStateSpace[n_markers-1][cur_index];
-      chosenStates.emplace_back(bestStateInd); 
-      
-      //choose zim recursively from markers M-1,...,1
-      for(int markCount=n_markers-2; markCount>=0; --markCount)
-      {
-		curMarkVals.clear();
-		curMarkVals=(vector<Double>(num_states));
-		curMarkVals_norm.clear();
-		//we have value for previous marker in bestStateInd
-		toStateVec = totStateSpace[bestStateInd].values;
-		fwd_probsCurmark= Fwd_probs[markCount];
-		curMarkstates = curStateSpace[markCount];
-		//compute the value at this marker for all the states
-		parallel_for(int(0), num_states, [this,&fwd_probsCurmark,&toStateVec,&markCount,&curMarkVals,&totStateSpace,&HmmObj,&curMarkstates](int stateCount)throw()    
-		{
-			Double dfwdProb,dclstGV,dTemp;
-			dfwdProb =fwd_probsCurmark[stateCount];
-			vector<int> fromStateVec,tempVec;
-		        vector<vector<int>> perms_frmState;
-			fromStateVec = totStateSpace[curMarkstates[stateCount]].values;			        
-			vector_permutation(fromStateVec,tempVec,perms_frmState);		  
-			dclstGV= HmmObj.compute_trans_prob_bet_clst_tuples(markCount,perms_frmState,toStateVec);	    
-			dTemp = dclstGV*dfwdProb;	    
-			curMarkVals[stateCount]=dTemp; 
-		});
-		dsum_values = std::accumulate(curMarkVals.begin(), curMarkVals.end(),dinit_sum);
-		for(auto &kv:curMarkVals)
-		{
-			curMarkVals_norm.emplace_back(kv/dsum_values);
-		 }
-		 
-		 cur_index =0;
-		 //drandomvalue = unif(rng);
-		 drandomvalue =  randZeroToOne();
-		 drandomvalue -= curMarkVals_norm[cur_index];
-		 while((drandomvalue>0) && (cur_index<num_states-1))
-		 {
-			++cur_index;
-			drandomvalue -= curMarkVals_norm[cur_index];			  
-		  }
-		 bestStateInd = curStateSpace[markCount][cur_index];
-		 chosenStates.insert(chosenStates.begin(),bestStateInd);    
-		
-      }
-    //cout << "CHK Phase::sample_States END"<<endl;
 }
 
 void Phase::resolve_StateOrder( Chaplotypes &HmmObj,const vector<states> &totStateSpace,vector<int> &chosenStates,vector<vector<int>> &orderedStates)
@@ -331,4 +227,79 @@ vector<vector<int>> &orderedStates,vector<vector<int>> &final_Phase)
       }
   
   //  cout << "CHK Phase::do_phasing END"<<endl;
+}
+
+void Phase::sample_States(vector<vector<Double>> &Fwd_probs, vector<vector<Double>> &Clst_givenGenoV, 
+		    vector<int> &curStateSpace, Chaplotypes &HmmObj,const vector<states> &totStateSpace,vector<int> &chosenStates)
+{
+     // cout << "CHK Phase::sample_States START"<<endl;
+      vector<int> curMarkstates,fromStateVec,tempVec,toStateVec;
+      vector<vector<int>> perms_frmState;
+      int bestStateInd_loc,bestStateInd,cur_index;
+      vector<Double> curMarkVals,curMarkVals_norm,fwd_probsCurmark;
+      Double dfwdProb,dclstGV,dCurVal,dTemp,dsum_values,dinit_sum=0.0,drandomvalue;
+      
+      //normalize the values so that they add upto 1	  
+      dsum_values = std::accumulate(Clst_givenGenoV[n_markers-1].begin(), Clst_givenGenoV[n_markers-1].end(),dinit_sum);
+      for(auto &kv:Clst_givenGenoV[n_markers-1])
+      {
+	    curMarkVals_norm.emplace_back(kv/dsum_values);
+       }
+     
+     //first sample ziM ~ p(ziM|g,v)~p(g,ZiM,v) 
+      drandomvalue =  randZeroToOne();
+      cur_index =0;
+      drandomvalue -= curMarkVals_norm[0];
+      while((drandomvalue>0) && (cur_index<num_states-1))
+      {
+	    ++cur_index;
+	    drandomvalue -= curMarkVals_norm[cur_index];		
+	}
+      
+      bestStateInd = curStateSpace[cur_index];
+      chosenStates.emplace_back(bestStateInd); 
+      
+      //choose zim recursively from markers M-1,...,1
+      for(int markCount=n_markers-2; markCount>=0; --markCount)
+      {
+		curMarkVals.clear();
+		curMarkVals=(vector<Double>(num_states));
+		curMarkVals_norm.clear();
+		//we have value for previous marker in bestStateInd
+		toStateVec = totStateSpace[bestStateInd].values;
+		fwd_probsCurmark= Fwd_probs[markCount];
+		curMarkstates = curStateSpace;
+		//compute the value at this marker for all the states
+		parallel_for(int(0), num_states, [this,&fwd_probsCurmark,&toStateVec,&markCount,&curMarkVals,&totStateSpace,&HmmObj,&curMarkstates](int stateCount)throw()    
+		{
+			Double dfwdProb,dclstGV,dTemp;
+			dfwdProb =fwd_probsCurmark[stateCount];
+			vector<int> fromStateVec,tempVec;
+		        vector<vector<int>> perms_frmState;
+			fromStateVec = totStateSpace[curMarkstates[stateCount]].values;			        
+			vector_permutation(fromStateVec,tempVec,perms_frmState);		  
+			dclstGV= HmmObj.compute_trans_prob_bet_clst_tuples(markCount,perms_frmState,toStateVec);	    
+			dTemp = dclstGV*dfwdProb;	    
+			curMarkVals[stateCount]=dTemp; 
+		});
+		dsum_values = std::accumulate(curMarkVals.begin(), curMarkVals.end(),dinit_sum);
+		for(auto &kv:curMarkVals)
+		{
+			curMarkVals_norm.emplace_back(kv/dsum_values);
+		 }
+		 
+		 cur_index =0;
+		 //drandomvalue = unif(rng);
+		 drandomvalue =  randZeroToOne();
+		 drandomvalue -= curMarkVals_norm[cur_index];
+		 while((drandomvalue>0) && (cur_index<num_states-1))
+		 {
+			++cur_index;
+			drandomvalue -= curMarkVals_norm[cur_index];			  
+		  }
+		 bestStateInd = curStateSpace[cur_index];
+		 chosenStates.insert(chosenStates.begin(),bestStateInd);    
+		
+      }
+    //cout << "CHK Phase::sample_States END"<<endl;
 }
