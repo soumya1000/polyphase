@@ -11,14 +11,12 @@ class data_genotypes
     public:
     
     vector<vector<vector<int>>>   m_genotypes; //nIndividuals x nmarkers x nhaplotypes
-    vector<int> m_physical_positions;
-    vector<int> m_physical_distances;
-    vector<std::string> m_ind_ID;
-    
+    vector<double> m_physical_positions;
+    vector<double> m_physical_distances;
+    //vector<std::string> m_ind_ID;
+    void read_paramsFile();
     data_genotypes();
     ~data_genotypes();
-    void parse_input(string iFilename);
-    void read_paramsFile(void);
-    void log_variables(void);
-    void read_variables();
+    void parse_input(string ipFileName);
+    void print_variables(void);
 };
