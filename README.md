@@ -5,7 +5,7 @@ This repository has two methods,
  Computes the switch error: The number switches required to match the haplotypes of phased out to those of true haplotypes. The lower this value, the better is the phasing method.
 
  1.Phasing method:
-    1. This program requires the pre-installation of boost(http://www.boost.org/), DAKOTA(https://dakota.sandia.gov/sites/default/files/docs/6.0/html-ref/index.html), TBB (https://www.threadingbuildingblocks.org/) and 
+    1. This program requires the pre-installation of boost(http://www.boost.org/), GSL(https://www.gnu.org/software/gsl/ )and 
 	GNU multi precision libraries (http://www.mpfr.org/).
     2. Command : ./init Input_datafile
     
