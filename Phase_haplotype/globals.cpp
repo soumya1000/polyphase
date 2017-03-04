@@ -1,7 +1,6 @@
 #include "globals.h"
 
-
-Double dThreshold = pow(10,-10);
+Double dThreshold = pow(10,-30);
 Double scaling_factor = pow(10,10);
 double Recomb_InitialValue;
 int n_individuals;
@@ -10,7 +9,9 @@ int n_clusters;
 int n_ploidy;
 int num_states;
 int n_scaler =0;
-
+int n_runs=1;
+int n_iterations =25;
+int n_transitions = 12;
 int factorial(int n)
 {
   return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;
@@ -22,11 +23,11 @@ long int binomialCoef(int N,int r)
   
   for(int iCount=0;iCount < r; iCount++)
   {
-    //iCoefficient = iCoefficient*(N-iCount) ;
-     iCoefficient = exp(log(iCoefficient)+log(N-iCount));
+      iCoefficient *= (N-iCount) ;
+     //iCoefficient = exp(log(iCoefficient)+log(N-iCount));
   }
-  //iResult = iCoefficient/factorial(r);
-  iResult = exp(log(iCoefficient)-log(factorial(r)));
+  iResult = iCoefficient/factorial(r);
+  //iResult = exp(log(iCoefficient)-log(factorial(r)));
   return(iResult) ;
   
 }
@@ -40,18 +41,18 @@ Double binomialProb(int N,int r,Double p)
   return(dResult) ;
 }
 
-long choose(vector<int > &input,vector<int > &got, int n_chosen, int len, int at, int max_types,vector< states > &T)
+long choose(vector<int > &input,vector<int > &got, int n_chosen, int len, int at, int max_types,vector< vector<int> >  &T)
 {
   int i;
   long count = 0;
   
   if (n_chosen == len) 
   {
-    states single;
+    vector<int> single;
     
     for (i = 0; i < len; i++)
     {
-        single.values.push_back(input[got[i]]) ;
+        single.emplace_back(input[got[i]]) ;
     }
     
     T.push_back(single);
@@ -93,47 +94,62 @@ std::vector<int> next,std::vector<vector<int>> &permutations)
   
   if(size>0)
   {
-    for(int cnt=0; cnt<size;++cnt)
-    {
-      std::vector<int> vt;
-      std::vector<int>::const_iterator it=now.begin();
-      
-      for(int cnt1=0;cnt1<size;++cnt1)
-      {
-        if(cnt1==cnt)
-        {
-          ++it;
-          continue;
+	for(int cnt=0; cnt<size;++cnt)
+	{
+	      std::vector<int> vt;
+	      std::vector<int>::const_iterator it=now.begin();
+	      
+	      for(int cnt1=0;cnt1<size;++cnt1)
+	      {
+		    if(cnt1==cnt)
+		    {
+		      ++it;
+		      continue;
+		    }
+		    else
+		   {
+		      vt.push_back(*it);
+		    }
+		      ++it;
+	      }
+	      
+	      std::vector<int>::const_iterator it1=now.begin();
+	      --it1;
+	      for(int cnt2=0;cnt2<=cnt;++cnt2)
+	      {
+		++it1;
+	      }
+	      next.push_back(*it1);
+	      vector_permutation(vt,next,permutations);//,func);
+	      next.pop_back();
         }
-        else
-	    {
-          vt.push_back(*it);
-	    }
-          ++it;
-      }
-      
-      std::vector<int>::const_iterator it1=now.begin();
-      --it1;
-      for(int cnt2=0;cnt2<=cnt;++cnt2)
-      {
-        ++it1;
-      }
-      next.push_back(*it1);
-      vector_permutation(vt,next,permutations);//,func);
-      next.pop_back();
-    }
   }
   else
   {
-    vector<int> single(next.begin(),next.end());
-    if(std::find(permutations.begin(), permutations.end(), single)==permutations.end())
-    {
-      permutations.push_back(single);
-    }
+	vector<int> single(next.begin(),next.end());
+	if(std::find(permutations.begin(), permutations.end(), single)==permutations.end())
+	{
+	      permutations.push_back(single);
+	}
   }
 }
-
-void gen_combi_states(vector< states > &T)
+void gen_combi_states(vector< vector<int> > &T)
+{
+ 
+    vector<int> input(n_clusters); 
+      
+      for(int i= 0; i<n_clusters;i++)
+      {
+	input[i]= i;
+      }
+      
+      vector<int> data(n_ploidy);
+      choose(input,data, 0, n_ploidy, 0, n_clusters,T);  
+    
+      //gen_weights_states(T);
+      return;
+}
+/*void gen_combi_states(vector< states > &T)
 {
  
  vector<int> input(n_clusters); 
@@ -148,13 +164,12 @@ void gen_combi_states(vector< states > &T)
  // gen_weights_states(nclusters, nploidy, T ,indiprobs);  
  gen_weights_states(T);
   return;
-}
+}*/
 
-
-void sample(vector<states> &input,  vector<int> &exclude,vector<int> &output,int size_output)
-{
+/*void sample(vector<states> &input,  vector<int> &exclude,vector<int> &output,int size_output)
+//{
  
- /*initialize random seed: */
+ //initialize random seed: 
 
   //srand (time(NULL));
   
@@ -193,47 +208,15 @@ void sample(vector<states> &input,  vector<int> &exclude,vector<int> &output,int
     output.erase(output.begin()); 
   }
   
-}
+}*/
 
-void sample(vector<states> &input,vector<int> &output,int size_output)
+/*void sample(vector<states> &input,vector<int> &output,int size_output)
 {
   vector<int> exclude{-1};
   sample(input,exclude,output,size_output);
-}
+}*/
 
-void sample(vector<Double> &input, vector<int> &output,int size_output)
-{
-     srand(time(0)+clock()+random());
-   int sample_size=0,cur_index;
-   int input_size = input.size();
-   Double dinit_sum =0.0,drandomValue;
-   Double weight_sum= std::accumulate(input.begin(), input.end(),dinit_sum);
-   std::vector<Double> input_Norm;
-    
-   for ( auto &i : input ) 
-      input_Norm.emplace_back( i/ weight_sum) ;
-    
-    while(sample_size < size_output)
-    {
-	  drandomValue =  rand() / (RAND_MAX + 1.0);
-	  drandomValue -= input_Norm[0];
-	  cur_index =0;
-	  while((drandomValue>0) && (cur_index<input_size))
-	  {
-		++cur_index;
-		drandomValue -= input_Norm[cur_index];
-	  }
-	   
-	  if(std::find(output.begin(), output.end(), cur_index)==output.end())
-	  {
-	      output.emplace_back(cur_index);
-	      ++sample_size;
-	  }
-    }
-   
-}
-
-void gen_weights_states( vector<states> &T)
+/*void gen_weights_states( vector<states> &T)
 {
   
       long int numerator_1;
@@ -257,28 +240,28 @@ void gen_weights_states( vector<states> &T)
 	    value_temp *= numerator_1;
 	    T[loop_count].weight = value_temp;	  
       }
-}
+}*/
 
 int compare(const vector<int>& left, const vector<int>& right,vector<int>& out) 
 {
-  auto leftIt = left.begin();
-  auto rightIt = right.begin();
-  auto diff = 0;
-  int pos=0;
-  
-  while (leftIt != left.end() && rightIt != right.end())
-  {
-    if (*leftIt != *rightIt)
-    {
-      out.push_back(*rightIt);
-      diff++;
-    }
-    leftIt++;
-    rightIt++;
-    pos++;
-  }
+      auto leftIt = left.begin();
+      auto rightIt = right.begin();
+      auto diff = 0;
+      int pos=0;
+      
+      while (leftIt != left.end() && rightIt != right.end())
+      {
+	    if (*leftIt != *rightIt)
+	    {
+	      out.push_back(*rightIt);
+	      diff++;
+	    }
+	    leftIt++;
+	    rightIt++;
+	    pos++;
+      }
 
- return diff;
+    return diff;
 }
 
 bool small_vectors(const vector<int> &a,const vector<int> &b) 
@@ -286,49 +269,21 @@ bool small_vectors(const vector<int> &a,const vector<int> &b)
    return a.size() < b.size();
 }
 
-
-void normalize_vector(vector<Double> &inout)
-{
-  Double init_sum =0.0;
-  Double sum_elements = std::accumulate(inout.begin(), inout.end(),init_sum);
-  
-  if(sum_elements <= 1.0)
-    return;
- 
-   for(auto  &it:inout)
-     it = it/sum_elements;
-}
-
-// projects the ind values of vector between 0 and 1
-//void project_range0_1(vector<Double> &inout)
-//{
- // long int num_copy, num_ClosestVal;
-  
- // for(auto &it:inout)
- // {
-   //   if(abs(it)>1)
-    //  {
-    //	 it = atan(it) ;
-     // }
-   //}
-//}
 void get_map_vectors(vector<vector<int>>&input1, vector<int> &input2, vector<vector<std::pair<int,int>>> &output)
 {
    // map the input1 and input1 in a unique way,  for eg input1[0]={0, 0, 1, 1} state={2,3,3,4} map= {(0, 2),(0, 3),(1, 3),(1, 4)}
-   for(vector<vector<int>>::iterator haploCount= input1.begin();haploCount !=input1.end();++haploCount)
-   {
-      vector<std::pair<int,int>> my_map; // new sub container
-      		      
-      std::transform((*haploCount).begin(), (*haploCount).end(), input2.begin(), 
-      std::inserter(my_map, my_map.end()), std::make_pair<int const&,int const&>);// push in a map for a single haplo vector and the state vector
-		      
-     // std::sort(my_map.begin(),my_map.end()); // sort the map
-		      
-      output.emplace_back(my_map);
-    }
+      for(vector<vector<int>>::iterator haploCount= input1.begin();haploCount !=input1.end();++haploCount)
+      {
+	    vector<std::pair<int,int>> my_map; // new sub container      
+	    std::transform((*haploCount).begin(), (*haploCount).end(), input2.begin(), 
+	    std::inserter(my_map, my_map.end()), std::make_pair<int const&,int const&>);// push in a map for a single haplo vector and the state vector
+			    
+	    //std::sort(my_map.begin(),my_map.end(),pairCompare); // sort the map      
+	    output.emplace_back(my_map);
+	}
     
     //eliminate the duplicates
-      std::sort(output.begin(),output.end()); 
+      std::sort(output.begin(),output.end()); // sort the map    
       output.erase(unique(output.begin(),output.end()), output.end()); 
 }
 
@@ -338,7 +293,7 @@ Double  randZeroToOne()
     return rand() / (RAND_MAX + 1.);
 }
 
-void print_values( int size,  const gsl_vector *x)
+/*void print_values( int size,  const gsl_vector *x)
 {
    cout << "print_values " << endl;
     for(int i=0;i<size;++i)
@@ -346,4 +301,4 @@ void print_values( int size,  const gsl_vector *x)
 	cout << gsl_vector_get (x,i) << " ";
     }
    cout << endl;
-}
+}*/

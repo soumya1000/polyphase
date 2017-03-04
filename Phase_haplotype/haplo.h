@@ -23,13 +23,13 @@ class Chaplotypes
    vector<double> m_recombinations;
    
    
-   
-   void initialise_param(string ipFileName); // initialises v(alpha,theta,r)
+   void initialize(string ipFileName);
+   void initialise_param(); // initialises v(alpha,theta,r)
    
    void print_param(void);
    //Equations 3 & 4 in the article
    void compute_trans_prob_bet_clst(void);
-   void log_param_hap();
+   void log_param_hap(string fName,bool recombDirect=1);
    
    //transitions between unordered lists of clusters
    Double compute_trans_prob_bet_clst_tuples(int frmMarker,vector<vector<int>>&fromstatePerms,vector<int>&toState);

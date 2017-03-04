@@ -6,24 +6,22 @@
 //*************************************************************//
 Chaplotypes::Chaplotypes()
 {
-  cout << "Chaplotypes::Chaplotypes()" << endl;
+  //cout << "Chaplotypes::Chaplotypes()" << endl;
  
-  m_params_file_haplos.open ("Model_param.txt"); 
+  //m_params_file_haplos.open ("Model_param.txt"); 
 }
 
 Chaplotypes::~Chaplotypes()
 {
   //m_params_file_haplos.close();
-  cout << "Chaplotypes::~Chaplotypes()" << endl;
+  //cout << "Chaplotypes::~Chaplotypes()" << endl;
   //print_param();
   //log_param_hap();
-  m_params_file_haplos.close();
+  //m_params_file_haplos.close();
 }
 
-void Chaplotypes::initialise_param(string ipFileName)
+void Chaplotypes::initialise_param()
 {
-	m_input.parse_input(ipFileName);
-
 	//initialise theta matrix
 	std::random_device rd;
 	std::mt19937 gen(rd());
@@ -32,6 +30,7 @@ void Chaplotypes::initialise_param(string ipFileName)
 	std::uniform_real_distribution<double> distribution(0.0001,0.9999);
 	
 	// THETA values
+	m_theta.clear();
 	for(int iCount=0;iCount < n_markers; ++iCount)
 	{
 	    vector<double> thetaTemp;
@@ -47,26 +46,29 @@ void Chaplotypes::initialise_param(string ipFileName)
 	//initialse cluster frequencies (ALPHA)  
 	//LATER : assign initial values from dirichlet distribution
 	 double normalise; 
+	 m_alpha.clear();
         for(int iCount=0;iCount < n_markers; ++iCount)
 	{  
 	    vector<double> alphaTemp;  
 	    normalise = 0.0;
 	    for(int jCount=0;jCount< n_clusters;++jCount)
 	    {
-		//alphaTemp.emplace_back(1.0/n_clusters); 
-		alphaTemp.emplace_back(distribution(rd)); 
+		alphaTemp.emplace_back(1.0/n_clusters); 
+		//alphaTemp.emplace_back(distribution(rd)); 
 		normalise = normalise + alphaTemp[jCount];
 	     } 
 	     for(int jCount=0; jCount < n_clusters ;++jCount)
 	     {
 	       alphaTemp[jCount] = alphaTemp[jCount]/normalise ;
-	      }
+	     }
 		m_alpha.emplace_back(alphaTemp);
 	  }   
-
+          double dtemp;
+	  m_recombinations.clear();
 	  for(int iCount =0;iCount < (n_markers-1) ;++iCount)
 	  {
-	      m_recombinations.emplace_back(Recomb_InitialValue);
+	      dtemp= 1-exp(-1*Recomb_InitialValue*m_input.m_physical_distances[iCount]);
+	      m_recombinations.emplace_back(dtemp);
 	   }
 	//print_param();
 }
@@ -77,40 +79,46 @@ void Chaplotypes::compute_trans_prob_bet_clst()
     Double dTempJumpprob=0,dTemp;
 
       vector<double> alphaCurMarker;
-      
-	for(int jCount=0; jCount < n_markers-1; jCount++)
+      m_trans_prob_bet_clst.clear();
+      int loopEnd = n_clusters*n_clusters;
+      map<pair<int,int>,Double> tempData;
+      vector <pair<int,int>> tempDataVec;
+      for(int kCount=0; kCount < n_clusters; ++kCount)
+      { 
+	   for(int lCount=0; lCount < n_clusters; ++lCount)
+	   {    
+		tempData[std::make_pair (kCount,lCount)] =0.0 ;
+		tempDataVec.emplace_back(std::make_pair (kCount,lCount));
+	   }  
+      } 
+
+        for(int jCount=0; jCount < n_markers-1; jCount++)
 	{ 
-	    map<pair<int,int>,Double> markerData;
+	    map<pair<int,int>,Double> markerData = tempData;
 	    alphaCurMarker = m_alpha[jCount];
+	    parallel_for(int(0),loopEnd,[this,&markerData,&jCount,&tempData,&alphaCurMarker,&tempDataVec](int iCounter)throw()
+	    {
+	         Double dTemp =  m_recombinations[jCount];
+		 Double dTempJumpprob = (dTemp)*alphaCurMarker[tempDataVec[iCounter].second];   
+		 
+		 if(tempDataVec[iCounter].first == tempDataVec[iCounter].second)
+		 {
+		     dTempJumpprob = (dTempJumpprob + 1-dTemp);
+		 }
+	          markerData[ tempDataVec[iCounter]] = dTempJumpprob;
+	    });
 	  
-	    for(int kCount=0; kCount < n_clusters; kCount++)
-	    { 
-		for(int lCount=0; lCount < n_clusters; lCount++)
-		{    
-		    dTemp = exp(-1*m_recombinations[jCount]*m_input.m_physical_distances[jCount]);
-		    //dTempJumpprob = (1-dTemp)*alphaCurMarker[lCount];    
-		    dTempJumpprob = exp(log(1-dTemp)+ log(alphaCurMarker[lCount]));  
-		    
-		    if( kCount == lCount)
-		    {
-		      dTempJumpprob = dTempJumpprob + dTemp;
-		      //dTempJumpprob = exp(add_log(log(dTempJumpprob),log(dTemp)));
-		    }
-	      
-		    markerData[ std::make_pair (kCount,lCount)] = dTempJumpprob;
-		}  
-	    } 
 	    m_trans_prob_bet_clst.emplace_back(markerData);      
 	} 
-
-      /*std::map<pair<int,int>, double> x;
-      for(size_t i= 0;i < m_trans_prob_bet_clst.size();i++) 
+    /* int markCount =0;
+      for(auto &it:m_trans_prob_bet_clst) 
       {
-	x = m_trans_prob_bet_clst[i];
-	for(  std::map<pair<int,int>, double>::iterator j= x.begin();j!=x.end();j++) 
-	{
-	  cout <<  (*j).first.first << "," << (*j).first.second << " : " << (*j).second << endl;
-	}
+	    cout << "markCount "<< markCount << endl;
+	    for(auto &jt:it) 
+	    {
+		cout <<  jt.first.first << "," << jt.first.second << " : " << jt.second << endl;
+	    }
+	    ++markCount;
       }*/
   // cout << "Chaplotypes::compute_trans_prob_bet_clst() END" << endl;
   
@@ -133,9 +141,10 @@ Double Chaplotypes::compute_trans_prob_bet_clst_tuples(int frmMarker,vector<vect
       tempTrans = 1.0;
       for(auto kv:kvp)
       {
-	  tempTrans = exp(log(tempTrans) + log(markerData[kv]));
+	  //tempTrans = exp(log(tempTrans) + log(markerData[kv]));
+	  tempTrans *= markerData[kv];
       }
-      transValue = transValue + tempTrans;
+      transValue +=  tempTrans;
    }
    
     return transValue;  
@@ -149,7 +158,7 @@ void  Chaplotypes::print_param(void)
       cout << "Marker: "<< iCount << endl;
       for(int jCount=0; jCount <n_clusters ;jCount++)
       {
-	  cout << " " << m_theta[iCount][jCount];
+	  cout << m_theta[iCount][jCount]<< " ";
       }
       cout << endl;
    }
@@ -160,7 +169,7 @@ void  Chaplotypes::print_param(void)
       cout << "Marker: "<< iCount << endl;
       for(int jCount=0; jCount <n_clusters ;jCount++)
       {
-        cout << " " << m_alpha[iCount][jCount];
+        cout << m_alpha[iCount][jCount] << " ";
       }
       cout << endl;
     }
@@ -172,37 +181,66 @@ void  Chaplotypes::print_param(void)
     }
 }
 
-void Chaplotypes::log_param_hap(void)
+void Chaplotypes::log_param_hap(string fName,bool recombDirect)
 {
-   m_params_file_haplos << endl << "**********************************************************" << endl;
-   m_params_file_haplos << "Theta  " << endl;  
-   int marker =-1;
-   for(auto &kvp:m_theta)
-   {
-      m_params_file_haplos << "Marker: "<< ++marker << endl;
-      for(auto kv:kvp)
+      ofstream params_file(fName,ios::out | ios::app);
+      vector<double> recombs_final;
+      //params_file << endl << "**********" << endl;
+      
+     params_file << "alpha " << endl;        
+      for(auto &kvp:m_alpha)
       {
-	  m_params_file_haplos << " " << kv;
-      }
-      m_params_file_haplos << endl;
-   }
-   marker =-1; 
-   m_params_file_haplos << "alpha " << endl;   
-   
-   for(auto &kvp:m_alpha)
-   {
-      m_params_file_haplos << "Marker: "<< ++marker << endl;
-      for(auto kv:kvp)
+	  //params_file << "Marker: "<< ++marker << endl;
+	  for(auto kv:kvp)
+	  {
+	    params_file  << kv<< " ";
+	  }
+	  params_file << endl;
+	}
+	
+      params_file << "Theta  " << endl;  
+      int marker =-1;
+      double temp;
+      for(auto &kvp:m_theta)
       {
-        m_params_file_haplos << " " << kv;
+	  //params_file << "Marker: "<< ++marker << endl;
+	  for(auto kv:kvp)
+	  {
+	      params_file << kv<< " ";
+	  }
+	  params_file << endl;
       }
-      m_params_file_haplos << endl;
-    }
-    marker =-1; 
-    m_params_file_haplos << "Recombination values :" << endl;
-    for(auto &kvp:m_recombinations)
-    {
-      m_params_file_haplos << kvp << " ";
-    }
-     m_params_file_haplos << endl << "*******************************************************" << endl;
+      marker =-1; 
+      marker =0; 	
+	for(auto &kvp:m_recombinations)
+	{
+	    temp = log(1/(1-kvp))/m_input.m_physical_distances[marker];
+	    recombs_final.emplace_back(temp);
+	    ++marker;
+	}
+	if(recombDirect==true)
+	{
+	    params_file << endl<<"Recombination values Final:" << endl;
+	    for(auto &kvp:recombs_final)
+	    {
+		params_file << kvp << " ";
+	    }
+	}
+	else
+	{
+	    params_file << "1-e^(-rmdm) :" << endl;
+	    for(auto &kvp:m_recombinations)
+	    {
+		params_file << kvp << " ";
+	    }
+	  
+	}
+	params_file << endl << "**********" << endl;
+	params_file.close();
+}
+
+void Chaplotypes::initialize(string ipFileName)
+{
+    m_input.parse_input(ipFileName);
+    initialise_param();
 }
