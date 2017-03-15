@@ -2,7 +2,7 @@
 
 CEmtfgeno::CEmtfgeno(string ipFileName,string paramsFileName)
 {
-     m_params_file.open ("Test_Phase_param.txt"); 
+     //m_params_file.open ("Test_Phase_param.txt"); 
      //m_hap_data.initialise_param(ipFileName);
      m_hap_data.initialize(ipFileName);
      
@@ -22,7 +22,7 @@ CEmtfgeno::CEmtfgeno(string ipFileName,string paramsFileName)
  
 CEmtfgeno::~CEmtfgeno()
 {
-    m_params_file.close();   
+    //m_params_file.close();   
 }
 
 void CEmtfgeno::initialise_param()
@@ -293,6 +293,8 @@ void CEmtfgeno::compute_clust_given_v()
 						}
 						transValue +=  tempTrans;
 					}
+					if(transValue < 1e-20)
+					  transValue = 1e-20;
 					state_data[fromCount] =  transValue;// m_hap_data.compute_trans_prob_bet_clst_tuples(markCnt,fromPerms,toStVec);
 					fromPerms.clear();		      
 				  });		
@@ -589,7 +591,7 @@ void  CEmtfgeno::resolve_phase(bool logging)
    // m_hap_data.compute_trans_prob_bet_clst();
    // compute_clust_given_v();
     update_HMM_param();
-    log_param();
+    //log_param();
     CPhasetf PhaseObj;
     vector<vector<vector<int>>> orderedStates;
     vector<vector<vector<int>>> final_Phase;    
@@ -714,12 +716,14 @@ double CEmtfgeno::run_em(int iterations)
 		  m_fwd_probs.emplace_back(vector<vector<Double>> ());  
 		  m_bckwd_probs.emplace_back(vector<vector<Double>> ());      
 		  m_ev_jump_given_geno.emplace_back(vector<vector<Double>> ()); 
-		  for(int marker=0;marker<n_markers;++marker)
+		  for(int marker=0;marker<n_markers-1;++marker)
 		  {
 		      m_fwd_probs[indCount].emplace_back(vector<Double>(num_states));
 		      m_bckwd_probs[indCount].emplace_back(vector<Double>(num_states,1.0));
 		      m_ev_jump_given_geno[indCount].emplace_back(vector<Double>(n_clusters));
 		  }
+		  m_fwd_probs[indCount].emplace_back(vector<Double>(num_states));
+		  m_bckwd_probs[indCount].emplace_back(vector<Double>(num_states,1.0));
 	    }
 	      
 	    for(int marker=0;marker<n_markers-1;++marker)
@@ -795,8 +799,8 @@ double CEmtfgeno::run_em(int iterations)
 void CEmtfgeno::compute_exp_jump_given_geno_v(void)
 {
   // cout << "CEmtfgeno::compute_exp_jump_given_geno_v() START" << endl;
-       //m_ev_jump_given_geno.clear();  
-       vector<Double> BckwrdProbCurMark,Geno_given_Clst_V_CurMrk;
+     
+     vector<Double> BckwrdProbCurMark,Geno_given_Clst_V_CurMrk;
      
       combinable<Double> expJumpind_clust([]() { return 0.0; });  
       Double dFwdProbPrevMark,dtotprobInd,dsummark,dInit=0.0;

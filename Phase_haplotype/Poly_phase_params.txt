@@ -1,4 +1,3 @@
 #Please retain the format and modify values alone 
 Number-of-clusters: 8
-Initial-value-for-Recombination: 0.01
-Number-of-states-at-each-marker: 5
+Initial-value-for-Recombination: 0.00000001

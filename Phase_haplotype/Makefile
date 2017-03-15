@@ -3,13 +3,10 @@ CFLAGS= -std=c++11  -c -pthread -I  /run/media/root/System/tbb44_20150728oss/inc
 LDFLAGS= -lmpfr -ltbb 
 SOURCES = globals.cpp parsedata.cpp haplo.cpp emtf.cpp samplingtf.cpp  
 TARGET_OBJECTS = $(SOURCES:.cpp=.o)
-EXECUTABLE =  phase_sim
 
-all: phase_engine 
+all: phase_sim 
 
-phase_engine: $(EXECUTABLE)
-
-$(EXECUTABLE): $(TARGET_OBJECTS)
+phase_sim: $(TARGET_OBJECTS)
 	$(CC) $(LDFLAGS) $^ -o $@
 
 .cpp.o:

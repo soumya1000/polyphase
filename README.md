@@ -20,3 +20,6 @@ This repository has two methods,
       2. Command :  Rscript switch_error.R Phased_output.txt true_data.dat n_ploidy  n_ind n_mark, 
          where Phased_output.txt  is output from the phasing method and true_data.dat is a file with true values of haplotypes.
       3. The output  is a csv file with switch error for every individual, as shown in the example file.
+
+ 3. Examples
+    1. To run phasing example , :/phase_sim 
