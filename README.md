@@ -22,4 +22,4 @@ This repository has two methods,
       3. The output  is a csv file with switch error for every individual, as shown in the example file.
 
  3. Examples
-    1. To run phasing example , :/phase_sim 
+    1. To run phasing example , ./phase_sim example_data/tetra_unphased.inp 
